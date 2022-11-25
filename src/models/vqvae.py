@@ -19,7 +19,7 @@ class VQVAE(BaseModule):
 
     def forward(self, inputs: torch.Tensor) -> tuple:
         latents = self.encoder(inputs)
-        quantized_latents = self.vector_quantizer(latents)
+        quantized_latents, _, _ = self.quantizer(latents)
         # Straight through reparameterization trick
         st_quantized_latents = latents + torch.detach(quantized_latents - latents)
         reconstruction = self.decoder(st_quantized_latents)

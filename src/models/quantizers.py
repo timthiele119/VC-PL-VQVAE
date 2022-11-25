@@ -29,7 +29,7 @@ class VanillaVectorQuantizer(VectorQuantizer):
     def from_config(cls, config: dict):
         pass
 
-    def quantize(self, inputs: torch.Tensor) -> torch.Tensor:
+    def quantize(self, inputs: torch.Tensor) -> tuple:
         permutation = list(range(len(inputs.shape)))
         permutation.append(permutation.pop(permutation[1]))
         # [B x D x H x W] -> [B x H x W x D]
@@ -51,7 +51,7 @@ class VanillaVectorQuantizer(VectorQuantizer):
         reverse_permutation.insert(1, reverse_permutation.pop())
         embedding_vectors = embedding_vectors.permute(tuple(reverse_permutation)).contiguous()
 
-        return embedding_vectors
+        return embedding_vectors, embedding_indices, embedding_distances
 
     def _get_embedding_distances(self, inputs: torch.Tensor) -> torch.Tensor:
         """
