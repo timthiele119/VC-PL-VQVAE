@@ -17,11 +17,18 @@ class VQVAE(BaseModule):
     def from_config(cls, config):
         pass
 
-    def forward(self, inputs: torch.Tensor) -> tuple:
-        latents = self.encoder(inputs)
-        quantized_latents, _, _ = self.quantizer(latents)
+    def forward(self, inputs: torch.Tensor) -> dict:
+        encodings = self.encoder(inputs)
+        out_quantizer = self.quantizer(encodings)
+        embeddings = out_quantizer["embeddings"]
         # Straight through reparameterization trick
-        st_quantized_latents = latents + torch.detach(quantized_latents - latents)
-        reconstruction = self.decoder(st_quantized_latents)
+        st_quantized_latents = encodings + torch.detach(embeddings - encodings)
+        reconstructions = self.decoder(st_quantized_latents)
 
-        return reconstruction, latents, quantized_latents
+        return {
+            "reconstructions": reconstructions,
+            "encodings": encodings,
+            "embeddings": embeddings,
+            "embedding_ids": out_quantizer["embedding_ids"],
+            "embedding_distances": out_quantizer["embedding_distances"]
+        }

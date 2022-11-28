@@ -9,11 +9,11 @@ class VectorQuantizer(BaseModule):
     def __init__(self):
         super(VectorQuantizer, self).__init__()
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: torch.Tensor) -> dict:
         return self.quantize(inputs)
 
     @abstractmethod
-    def quantize(self, inputs: torch.Tensor) -> torch.Tensor:
+    def quantize(self, inputs: torch.Tensor) -> dict:
         pass
 
 
@@ -23,35 +23,39 @@ class VanillaVectorQuantizer(VectorQuantizer):
         super(VanillaVectorQuantizer, self).__init__()
         self.D = embedding_dim
         self.K = num_embeddings
-        self.embeddings = torch.nn.Parameter((torch.rand(self.D, self.K) - 0.5) * 2 / self.K, requires_grad=True)
+        self.codebook = torch.nn.Parameter((torch.rand(self.D, self.K) - 0.5) * 2 / self.K, requires_grad=True)
 
     @classmethod
     def from_config(cls, config: dict):
         pass
 
-    def quantize(self, inputs: torch.Tensor) -> tuple:
-        permutation = list(range(len(inputs.shape)))
+    def quantize(self, encodings: torch.Tensor) -> dict:
+        permutation = list(range(len(encodings.shape)))
         permutation.append(permutation.pop(permutation[1]))
         # [B x D x H x W] -> [B x H x W x D]
-        inputs = torch.permute(inputs, tuple(permutation)).contiguous()
-        shape_inputs = inputs.shape
+        encodings = torch.permute(encodings, tuple(permutation)).contiguous()
+        shape_encodings = encodings.shape
         # [B x H x W x D] -> [BHW x D]
-        inputs = inputs.view(-1, self.D)
+        encodings = encodings.view(-1, self.D)
 
         # Quantize inputs
-        embedding_distances = self._get_embedding_distances(inputs)
-        embedding_indices = self._get_embedding_indices(embedding_distances)
-        embedding_vectors = self._get_embedding_vectors(embedding_indices)
+        embedding_distances = self._get_embedding_distances(encodings)
+        embedding_ids = self._get_embedding_indices(embedding_distances)
+        embedding_vectors = self._get_embedding_vectors(embedding_ids)
 
         # Recover original shape
         # [BHW x D] -> [B x H x W x D]
-        embedding_vectors = embedding_vectors.view(shape_inputs)
+        embedding_vectors = embedding_vectors.view(shape_encodings)
         # [B x H x W x D] -> [B x D x H x W]
         reverse_permutation = list(range(len(permutation)))
         reverse_permutation.insert(1, reverse_permutation.pop())
         embedding_vectors = embedding_vectors.permute(tuple(reverse_permutation)).contiguous()
 
-        return embedding_vectors, embedding_indices, embedding_distances
+        return {
+            "embeddings": embedding_vectors,
+            "embedding_ids": embedding_ids,
+            "embedding_distances": embedding_distances
+        }
 
     def _get_embedding_distances(self, inputs: torch.Tensor) -> torch.Tensor:
         """
@@ -63,8 +67,8 @@ class VanillaVectorQuantizer(VectorQuantizer):
             distances: matrix of squared L2-distances [BHW x K]:
         """
         sqrd_norm_inputs = torch.sum(inputs ** 2, dim=1, keepdim=True)
-        sqrd_norm_embeddings = torch.sum(self.embeddings ** 2, dim=0, keepdim=True)
-        dot_inputs_embeddings = inputs @ self.embeddings
+        sqrd_norm_embeddings = torch.sum(self.codebook ** 2, dim=0, keepdim=True)
+        dot_inputs_embeddings = inputs @ self.codebook
         distances = sqrd_norm_inputs - 2 * dot_inputs_embeddings + sqrd_norm_embeddings
         return distances
 
@@ -88,5 +92,5 @@ class VanillaVectorQuantizer(VectorQuantizer):
             embedding_vectors: matrix of embedding vectors [BHW x D]:
         """
         embedding_indices_one_hot = nn.functional.one_hot(embedding_indices, num_classes=self.K).type(torch.float32)
-        embeddings = embedding_indices_one_hot @ self.embeddings.T
+        embeddings = embedding_indices_one_hot @ self.codebook.T
         return embeddings

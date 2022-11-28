@@ -21,7 +21,8 @@ def plot_original_reconstruction_matrix(grid_x: int, grid_y: int, model: VQVAE, 
         n_imgs = grid_x * grid_y
         indices = list(np.random.choice(len(dataset), size=n_imgs, replace=False))
         originals = torch.cat([dataset[idx] for idx in indices], dim=0).unsqueeze(dim=1).to(device)
-        reconstructions, _, _ = model(originals)
+        out = model(originals)
+        reconstructions = out["reconstructions"]
         originals_reconstructions = torch.cat([originals, reconstructions], dim=3)
         originals_reconstructions = torch.clip(originals_reconstructions, 0.0, 1.0)
         originals_reconstructions = torch.permute(originals_reconstructions, (0, 2, 3, 1))

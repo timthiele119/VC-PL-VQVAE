@@ -8,8 +8,8 @@ class VQVAELoss(nn.Module):
         super(VQVAELoss, self).__init__()
         self.beta = beta
 
-    def forward(self, inputs, reconstructions, latents, quantized_latents):
+    def forward(self, inputs, reconstructions, encodings, embeddings):
         reconstruction_loss = F.mse_loss(reconstructions, inputs)
-        embedding_loss = F.mse_loss(quantized_latents, latents.detach())
-        commitment_loss = F.mse_loss(latents, quantized_latents.detach())
+        embedding_loss = F.mse_loss(embeddings, encodings.detach())
+        commitment_loss = F.mse_loss(encodings, embeddings.detach())
         return reconstruction_loss + embedding_loss + self.beta * commitment_loss
