@@ -1,7 +1,11 @@
 import argparse
 import os
 import torch
+from torchaudio.transforms import MuLawDecoding
 import yaml
+from src.data.datasets import VCTKDataset
+from src.models.vqvae_vc import VQVAEVC
+from torch.utils.data import DataLoader
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
@@ -41,3 +45,22 @@ if __name__ == "__main__":
 
     DEVICE = device if torch.cuda.is_available() else "cpu"
     print(f"Use {DEVICE} device")
+
+    vctk_audio_dir = "/home/franky3er/Documents/code/data/VCTK/wav48_silence_trimmed"
+    vctk_speaker_info_path = "/home/franky3er/Documents/code/data/VCTK/speaker-info.txt"
+    root = "data/VCTK"
+    sr = 22050
+
+    dataset = VCTKDataset(root, sr, 1024, 4096, vctk_speaker_info_path, vctk_audio_dir)
+    dataloader = DataLoader(dataset, batch_size=64)
+    mu_encoded_sequences, speakers = next(iter(dataloader))
+
+    mu_law_decoding = MuLawDecoding(256)
+
+    sequences = mu_law_decoding(mu_encoded_sequences).to(device)
+    print(sequences.shape)
+
+    vqvae_vc = VQVAEVC(32, 4, 32, 1000, 32, 110).to(device)
+    print(vqvae_vc(sequences).shape)
+
+

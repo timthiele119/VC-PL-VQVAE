@@ -1,20 +1,6 @@
-from abc import abstractmethod
-from src.models.base import BaseModule
+from src.models.base import VectorQuantizer
 import torch
 from torch import nn
-
-
-class VectorQuantizer(BaseModule):
-
-    def __init__(self):
-        super(VectorQuantizer, self).__init__()
-
-    def forward(self, inputs: torch.Tensor) -> dict:
-        return self.quantize(inputs)
-
-    @abstractmethod
-    def quantize(self, inputs: torch.Tensor) -> dict:
-        pass
 
 
 class VanillaVectorQuantizer(VectorQuantizer):

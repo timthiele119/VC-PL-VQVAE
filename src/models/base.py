@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import torch
 from torch import nn
 
 
@@ -13,24 +14,40 @@ class BaseModule(nn.Module):
         pass
 
 
-class ResBlock(BaseModule):
-    """
-    Implements residual block as suggested in https://arxiv.org/abs/1603.05027
-    """
-    def __init__(self, in_channels: int, hidden_channels: int, kernel_size: int = 3):
-        super(ResBlock, self).__init__()
-        self.transformation = nn.Sequential(
-            nn.BatchNorm2d(in_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, hidden_channels, kernel_size, padding="same"),
-            nn.BatchNorm2d(hidden_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_channels, in_channels, kernel_size, padding="same")
-        )
+class Encoder(BaseModule):
 
-    def forward(self, x):
-        return x + self.transformation(x)
+    def __init__(self):
+        super(Encoder, self).__init__()
 
-    @classmethod
-    def from_config(cls, config):
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.encode(inputs)
+
+    @abstractmethod
+    def encode(self, inputs: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class Decoder(BaseModule):
+
+    def __init__(self):
+        super(Decoder, self).__init__()
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.decode(inputs)
+
+    @abstractmethod
+    def decode(self, inputs: torch.Tensor) -> torch.Tensor:
+        pass
+
+
+class VectorQuantizer(BaseModule):
+
+    def __init__(self):
+        super(VectorQuantizer, self).__init__()
+
+    def forward(self, inputs: torch.Tensor) -> dict:
+        return self.quantize(inputs)
+
+    @abstractmethod
+    def quantize(self, inputs: torch.Tensor) -> dict:
         pass
