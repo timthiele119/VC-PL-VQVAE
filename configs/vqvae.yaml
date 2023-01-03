@@ -1,5 +1,0 @@
-device: "cuda"
-
-model: "vqvae"
-model_params:
-  layers: 5

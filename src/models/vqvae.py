@@ -19,16 +19,13 @@ class VQVAE(BaseModule):
 
     def forward(self, inputs: torch.Tensor) -> dict:
         encodings = self.encoder(inputs)
-        out_quantizer = self.quantizer(encodings)
-        embeddings = out_quantizer["embeddings"]
+        embeddings = self.quantizer(encodings)
         # Straight through reparameterization trick
-        st_quantized_latents = encodings + torch.detach(embeddings - encodings)
-        reconstructions = self.decoder(st_quantized_latents)
+        st_embeddings = encodings + torch.detach(embeddings - encodings)
+        reconstructions = self.decoder(st_embeddings)
 
         return {
             "reconstructions": reconstructions,
             "encodings": encodings,
-            "embeddings": embeddings,
-            "embedding_ids": out_quantizer["embedding_ids"],
-            "embedding_distances": out_quantizer["embedding_distances"]
+            "embeddings": embeddings
         }

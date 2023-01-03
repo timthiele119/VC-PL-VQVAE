@@ -1,27 +1,26 @@
 import torch
 from torch import nn
 
+DILATION_KERNEL_SIZE = 2
+DILATION_GROWTH_FACTOR = 2
+
 
 class WaveNet(nn.Module):
 
     def __init__(self, in_channels: int, residual_channels: int, dilation_channels: int, skip_channels: int,
-                 out_channels: int, kernel_size: int = 2, n_stacks: int = 2, dilation_steps: int = 9,
-                 dilation_growth_factor: int = 2, use_local_conditioning: bool = False,
+                 out_channels: int, dilation_steps: int, repeats: int, use_local_conditioning: bool = False,
                  in_channels_local_condition: int = None, use_global_conditioning: bool = False,
                  in_features_global_condition: int = None):
         super(WaveNet, self).__init__()
-        self.in_transform = CausalConv1D(in_channels, residual_channels, kernel_size, dilation=1)
-        self.gated_activation_stacks = nn.ModuleList()
-        for stack in range(n_stacks):
-            for dilation_step in range(dilation_steps):
-                dilation = dilation_growth_factor ** dilation_step
-                use_residual = not ((stack == n_stacks - 1) and (dilation_step == dilation_steps - 1))
-                self.gated_activation_stacks.append(
-                    GatedActivationResidualBlock(residual_channels, dilation_channels, skip_channels,
-                                                 kernel_size, dilation, use_residual,
-                                                 use_local_conditioning, in_channels_local_condition,
-                                                 use_global_conditioning, in_features_global_condition)
-                )
+        self.dilation_steps, self.repeats = dilation_steps, repeats
+        self.receptive_field_size = self.repeats * (2 ** (self.dilation_steps + 1))
+        self.in_transform = CausalConv1D(in_channels, residual_channels, DILATION_KERNEL_SIZE, dilation=1,
+                                         mask_type="A")
+        self.gated_activation_stack = GatedActivationResStack(residual_channels, dilation_channels, skip_channels,
+                                                              DILATION_KERNEL_SIZE, DILATION_GROWTH_FACTOR,
+                                                              dilation_steps, repeats, use_local_conditioning,
+                                                              in_channels_local_condition, use_global_conditioning,
+                                                              in_features_global_condition)
         self.out_transform = nn.Sequential(
             nn.ReLU(),
             nn.Conv1d(skip_channels, skip_channels, 1),
@@ -31,26 +30,53 @@ class WaveNet(nn.Module):
 
     def forward(self, sequences: torch.Tensor, local_conditions: torch.Tensor = None,
                 global_conditions: torch.Tensor = None):
-        summed_skip_outs = None
-        residual_out = self.in_transform(sequences)
-        for gated_activation_stack in self.gated_activation_stacks:
-            residual_out, skip_out = gated_activation_stack(residual_out, local_conditions,
-                                                            global_conditions)
-            if summed_skip_outs == None:
-                summed_skip_outs = skip_out
-            else:
-                summed_skip_outs += skip_out
+        transformed_sequences = self.in_transform(sequences)
+        summed_skip_outs = self.gated_activation_stack(transformed_sequences, local_conditions, global_conditions)
         logits = self.out_transform(summed_skip_outs)
         return logits
 
 
-class GatedActivationResidualBlock(nn.Module):
+class GatedActivationResStack(nn.Module):
+
+    def __init__(self, in_channels: int, dilation_channels: int, skip_channels: int, kernel_size: int,
+                 dilation_growth_factor: int, dilation_steps: int, repeats: int, use_local_conditioning: bool = False,
+                 in_channels_local_condition: int = None, use_global_conditioning: bool = False,
+                 in_features_global_condition: int = None, ignore_first_conv: bool = True):
+        super(GatedActivationResStack, self).__init__()
+        self.gated_activation_blocks = nn.ModuleList()
+        for stack in range(repeats):
+            for dilation_step in range(dilation_steps):
+                if ignore_first_conv and stack == 0 and dilation_step == 0:
+                    continue
+                dilation = dilation_growth_factor ** dilation_step
+                use_residual = not ((stack == repeats - 1) and (dilation_step == dilation_steps - 1))
+                self.gated_activation_blocks.append(
+                    GatedActivationResBlock(in_channels, dilation_channels, skip_channels,
+                                            kernel_size, dilation, use_residual,
+                                            use_local_conditioning, in_channels_local_condition,
+                                            use_global_conditioning, in_features_global_condition)
+                )
+
+    def forward(self, sequences: torch.Tensor, local_conditions: torch.Tensor = None,
+                global_conditions: torch.Tensor = None):
+        summed_skip_outs = None
+        res_outs = sequences
+        for gated_activation_block in self.gated_activation_blocks:
+            res_outs, skip_outs = gated_activation_block(res_outs, local_conditions, global_conditions)
+            if summed_skip_outs == None:
+                summed_skip_outs = skip_outs
+            else:
+                summed_skip_outs += skip_outs
+        return summed_skip_outs
+
+
+class GatedActivationResBlock(nn.Module):
 
     def __init__(self, in_channels: int, dilation_channels: int, skip_channels: int, kernel_size: int,
                  dilation: int = 1, use_residual: bool = True, use_local_conditioning: bool = False,
                  in_channels_local_condition: int = None, use_global_conditioning: bool = False,
                  in_features_global_condition: int = None):
-        super(GatedActivationResidualBlock, self).__init__()
+        super(GatedActivationResBlock, self).__init__()
         self.gated_activation_unit = GatedActivationUnit(in_channels, dilation_channels, kernel_size,
                                                          dilation, use_local_conditioning,
                                                          in_channels_local_condition,
@@ -93,7 +119,7 @@ class GatedActivationUnit(nn.Module):
         return out * gate
 
     def _compute_ungated_output(self, sequences: torch.Tensor, local_conditions: torch.Tensor = None,
-                global_conditions: torch.Tensor = None):
+                                global_conditions: torch.Tensor = None):
         ungated_out = self.conv_sequence(sequences)
         if self.use_local_conditioning:
             ungated_out += self.conv_local_condition(local_conditions)
@@ -102,7 +128,7 @@ class GatedActivationUnit(nn.Module):
         return torch.tanh(ungated_out)
 
     def _compute_gate(self, sequences: torch.Tensor, local_conditions: torch.Tensor = None,
-                global_conditions: torch.Tensor = None):
+                      global_conditions: torch.Tensor = None):
         gate = self.conv_sequence_gating(sequences)
         if self.use_local_conditioning:
             gate += self.conv_local_condition_gating(local_conditions)
@@ -113,9 +139,10 @@ class GatedActivationUnit(nn.Module):
 
 class CausalConv1D(nn.Module):
 
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, dilation: int=1):
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, dilation: int = 1, mask_type: str = "B"):
         super(CausalConv1D, self).__init__()
         left_pad = kernel_size + (kernel_size-1) * (dilation-1) - 1
+        left_pad += 1 if mask_type == "A" else 0
         pad = (left_pad, 0)
         self.pad = nn.ConstantPad1d(pad, 0.0)
         self.conv1d = nn.Conv1d(in_channels, out_channels, kernel_size, dilation=dilation)

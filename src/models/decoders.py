@@ -1,7 +1,20 @@
-from src.models.base import Decoder
+from abc import abstractmethod
 from src.models.modules import ResBlock1d, ResBlock2d
 import torch
 from torch import nn
+
+
+class Decoder(nn.Module):
+
+    def __init__(self):
+        super(Decoder, self).__init__()
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.decode(inputs)
+
+    @abstractmethod
+    def decode(self, inputs: torch.Tensor) -> torch.Tensor:
+        pass
 
 
 class LearnedUpsamplingDecoder1d(Decoder):

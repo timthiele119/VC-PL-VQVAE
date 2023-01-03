@@ -1,8 +1,21 @@
+from abc import abstractmethod
 import torch
 from torch import nn
 from torch.nn import functional as F
-from src.models.base import Encoder
 from src.models.modules import ResBlock1d, ResBlock2d
+
+
+class Encoder(nn.Module):
+
+    def __init__(self):
+        super(Encoder, self).__init__()
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.encode(inputs)
+
+    @abstractmethod
+    def encode(self, inputs: torch.Tensor) -> torch.Tensor:
+        pass
 
 
 class LearnedDownsamplingEncoder1d(Encoder):
