@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from src.params import global_params
 
 DILATION_KERNEL_SIZE = 2
 DILATION_GROWTH_FACTOR = 2
@@ -7,15 +8,13 @@ DILATION_GROWTH_FACTOR = 2
 
 class WaveNet(nn.Module):
 
-    def __init__(self, in_channels: int, residual_channels: int, dilation_channels: int, skip_channels: int,
-                 out_channels: int, dilation_steps: int, repeats: int, use_local_conditioning: bool = False,
-                 in_channels_local_condition: int = None, use_global_conditioning: bool = False,
-                 in_features_global_condition: int = None):
+    def __init__(self, residual_channels: int, dilation_channels: int, skip_channels: int, dilation_steps: int,
+                 repeats: int, use_local_conditioning: bool = False, in_channels_local_condition: int = None,
+                 use_global_conditioning: bool = False, in_features_global_condition: int = None):
         super(WaveNet, self).__init__()
         self.dilation_steps, self.repeats = dilation_steps, repeats
         self.receptive_field_size = self.repeats * (2 ** (self.dilation_steps + 1))
-        self.in_transform = CausalConv1D(in_channels, residual_channels, DILATION_KERNEL_SIZE, dilation=1,
-                                         mask_type="A")
+        self.in_transform = CausalConv1D(1, residual_channels, DILATION_KERNEL_SIZE, dilation=1, mask_type="A")
         self.gated_activation_stack = GatedActivationResStack(residual_channels, dilation_channels, skip_channels,
                                                               DILATION_KERNEL_SIZE, DILATION_GROWTH_FACTOR,
                                                               dilation_steps, repeats, use_local_conditioning,
@@ -25,7 +24,7 @@ class WaveNet(nn.Module):
             nn.ReLU(),
             nn.Conv1d(skip_channels, skip_channels, 1),
             nn.ReLU(),
-            nn.Conv1d(skip_channels, out_channels, 1)
+            nn.Conv1d(skip_channels, global_params.MU_QUANTIZATION_CHANNELS, 1)
         )
 
     def forward(self, sequences: torch.Tensor, local_conditions: torch.Tensor = None,

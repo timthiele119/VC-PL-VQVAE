@@ -7,7 +7,7 @@ from torch.utils.data.dataset import Dataset
 
 def plot_original_reconstruction_matrix(grid_x: int, grid_y: int, model: VQVAE, dataset: Dataset, device: str = "cpu"):
     """
-    Randomly selects grid_x * grid_y examples from the dataset and plots the examples against their corresponding
+    Randomly selects grid_x * grid_y examples from the datasets and plots the examples against their corresponding
     VQ-VAE reconstruction
     :param grid_x: Number of examples in the horizontal direction
     :param grid_y: Number of examples in the vertical direction

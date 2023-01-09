@@ -1,36 +1,34 @@
+import sys
 from abc import abstractmethod
 import os
 import librosa
 import numpy as np
 import pandas as pd
-from src.data.utils import list_audio_files, mu_law_encoding, train_test_split
-from src.params import Params, global_params
+from src.data.utils import list_audio_files, mu_law_encoding
+from src.params import global_params
 import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
-SEED = 42
-TEST_SET_SIZE = 0.01
+import yaml
 
 
 class VCDataset(Dataset):
-    def __init__(self, params: Params, train: bool = True):
+    def __init__(self, root_dir: str, sr: float, receptive_field_size: int, segment_size: int,
+                 dataset_specific_config: dict, normalize: bool = False):
         super(VCDataset, self).__init__()
-        self.root = params.ROOT_DIR
+        self.root = root_dir
         self.root_info_path = os.path.join(self.root, "info.csv")
         self.root_dataset_path = os.path.join(self.root, "dataset.npz")
-        self.sr = params.SAMPLING_RATE
-        self.receptive_field_size = params.RECEPTIVE_FIELD_SIZE
-        self.segment_size = params.SEGMENT_SIZE
+        self.sr = sr
+        self.receptive_field_size = receptive_field_size
+        self.segment_size = segment_size
         self.step_size = self.segment_size - self.receptive_field_size
-        self.normalize = params.NORMALIZE
-        self.dataset_specific_config = params.DATASET_SPECIFIC_CONFIC
+        self.dataset_specific_config = dataset_specific_config
+        self.normalize = normalize
         if not os.path.isfile(self.root_info_path):
             self._create_dataset()
         self.audio_info = self._load_audio_info()
         self.audio_data = self._load_audio_data()
-        train_audio_ids, test_audio_ids = train_test_split(list(self.audio_info.keys()), TEST_SET_SIZE, SEED)
-        self.split_audio_ids = train_audio_ids if train else test_audio_ids
         self.audio_segment_index = self._create_audio_segment_index()
 
     @abstractmethod
@@ -38,7 +36,7 @@ class VCDataset(Dataset):
         pass
 
     def _create_dataset(self):
-        print("Create dataset")
+        print("Create datasets")
         if not os.path.exists(self.root):
             os.makedirs(self.root)
         audios, info = [], {"speaker_idx": [], "audio_idx": [], "sr": [], "n_samples": []}
@@ -67,14 +65,14 @@ class VCDataset(Dataset):
                 for speaker_idx, audio_idx, sr, n_samples in list(info.itertuples(index=False, name=None))}
 
     def _load_audio_data(self) -> dict[str, np.ndarray]:
-        print("Load audio data")
+        print("Load audio datasets")
         data = np.load(self.root_dataset_path, mmap_mode="r")
         return data
 
     def _create_audio_segment_index(self) -> list[tuple[str, int]]:
         print("Create audio segment index")
         index = []
-        for audio_idx in tqdm(self.split_audio_ids):
+        for audio_idx in tqdm(self.audio_info.keys()):
             _, _, n_samples = self.audio_info[audio_idx]
             offset = 0
             while offset + self.receptive_field_size < n_samples:
@@ -100,17 +98,26 @@ class VCDataset(Dataset):
 
 
 class VCTKDataset(VCDataset):
-
-    def __init__(self, params: Params, *args, **kwargs):
-        super(VCTKDataset, self).__init__(params, *args, **kwargs)
-        self.vctk_speaker_info_path = self.dataset_specific_config["VCTK_SPEAKER_INFO_PATH"]
-        self.vctk_audio_dir = self.dataset_specific_config["VCTK_AUDIO_DIR"]
-
     def _get_speaker_audio_files(self) -> list[tuple[int, str]]:
-        with open(self.vctk_speaker_info_path) as f:
+        vctk_speaker_info_path = self.dataset_specific_config["vctk_speaker_info_path"]
+        vctk_audio_dir = self.dataset_specific_config["vctk_audio_dir"]
+        with open(vctk_speaker_info_path) as f:
             speakers = [line.split(" ")[0] for line in f.readlines()[1:]]
         speaker_audio_files = []
         for speaker_id, speaker in enumerate(speakers):
-            speaker_dir = os.path.join(self.vctk_audio_dir, speaker)
+            speaker_dir = os.path.join(vctk_audio_dir, speaker)
             speaker_audio_files += [(speaker_id, audio_file) for audio_file in list_audio_files(speaker_dir)]
         return speaker_audio_files
+
+
+class VCDatasetFactory:
+
+    @classmethod
+    def from_config(cls, config_path: str) -> VCDataset:
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+            return cls.create_dataset(config["class_name"], config["init_args"])
+
+    @classmethod
+    def create_dataset(cls, class_name: str, init_args: dict) -> VCDataset:
+        return getattr(sys.modules[__name__], class_name)(**init_args)

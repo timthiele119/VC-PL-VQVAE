@@ -13,14 +13,6 @@ def list_audio_files(location):
     return audio_files
 
 
-def train_test_split(elements: list, test_split_size: float, seed: int = 42):
-    random.seed(seed)
-    k = int(len(elements) // (1/test_split_size))
-    test_elements = set(random.sample(elements, k=k))
-    train_elements = set(elements) - test_elements
-    return train_elements, test_elements
-
-
 def mu_law_encoding(audio: np.ndarray, quantization_channels: int) -> np.ndarray:
     """
     Quantize waveform amplitudes.

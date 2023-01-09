@@ -1,0 +1,9 @@
+trainer:
+  max_epochs: 100
+  accelerator: gpu
+  devices: 1
+  val_check_interval: 10000
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val_loss
