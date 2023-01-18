@@ -1,0 +1,12 @@
+data:
+  dataset_class_name: VCTKDataset
+  dataset_init_args:
+    root_dir: ./data/VCTK-22.05kHZ
+    sr: 22500
+    receptive_field_size: 3072
+    segment_size: 4096
+    dataset_specific_config:
+      vctk_speaker_info_path: /data/share/emonymous/vctk/speaker-info.txt
+      vctk_audio_dir: /data/share/emonymous/vctk/wav48_silence_trimmed
+    normalize: false
+  batch_size: 64

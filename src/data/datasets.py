@@ -4,10 +4,11 @@ import os
 import librosa
 import numpy as np
 import pandas as pd
-from src.data.utils import list_audio_files, mu_law_encoding
+from src.data.utils import list_audio_files
 from src.params import global_params
 import torch
 from torch.utils.data import Dataset
+from torchaudio.transforms import MuLawEncoding
 from tqdm import tqdm
 import yaml
 
@@ -25,6 +26,7 @@ class VCDataset(Dataset):
         self.step_size = self.segment_size - self.receptive_field_size
         self.dataset_specific_config = dataset_specific_config
         self.normalize = normalize
+        self.mu_law_encoder = MuLawEncoding(global_params.MU_QUANTIZATION_CHANNELS)
         if not os.path.isfile(self.root_info_path):
             self._create_dataset()
         self.audio_info = self._load_audio_info()
@@ -36,7 +38,7 @@ class VCDataset(Dataset):
         pass
 
     def _create_dataset(self):
-        print("Create datasets")
+        print("Create dataset")
         if not os.path.exists(self.root):
             os.makedirs(self.root)
         audios, info = [], {"speaker_idx": [], "audio_idx": [], "sr": [], "n_samples": []}
@@ -54,8 +56,8 @@ class VCDataset(Dataset):
         audio, sr = librosa.load(path=audio_file, sr=self.sr)
         n_samples = len(audio)
         audio = librosa.util.normalize(audio) if self.normalize else audio
-        quantized_audio = mu_law_encoding(audio, global_params.MU_QUANTIZATION_CHANNELS)\
-            .astype(getattr(np, global_params.MU_QUANTIZATION_NUMPY_DTYPE))
+        quantized_audio = self.mu_law_encoder(torch.tensor(audio)).numpy().astype(getattr(np,
+                                                                            global_params.MU_QUANTIZATION_NUMPY_DTYPE))
         return quantized_audio, sr, n_samples
 
     def _load_audio_info(self) -> dict[str, tuple[int, int, int]]:
@@ -89,7 +91,7 @@ class VCDataset(Dataset):
 
     def __getitem__(self, item):
         audio_idx, offset = self.audio_segment_index[item]
-        zero_pads = mu_law_encoding(np.zeros(self.receptive_field_size), global_params.MU_QUANTIZATION_CHANNELS)
+        zero_pads = self.mu_law_encoder(torch.zeros(self.receptive_field_size)).numpy()
         audio = np.concatenate((zero_pads, self.audio_data[audio_idx]))
         audio = audio[offset:offset+self.segment_size]
         audio = torch.tensor(audio).unsqueeze(0)
@@ -99,14 +101,17 @@ class VCDataset(Dataset):
 
 class VCTKDataset(VCDataset):
     def _get_speaker_audio_files(self) -> list[tuple[int, str]]:
-        vctk_speaker_info_path = self.dataset_specific_config["vctk_speaker_info_path"]
+        speakers = open(self.dataset_specific_config["vctk_speaker_list"]).read().split("\n")
+        relative_audio_file_paths = open(self.dataset_specific_config["vctk_relative_audio_path_list"])\
+            .read().split("\n")
         vctk_audio_dir = self.dataset_specific_config["vctk_audio_dir"]
-        with open(vctk_speaker_info_path) as f:
-            speakers = [line.split(" ")[0] for line in f.readlines()[1:]]
         speaker_audio_files = []
         for speaker_id, speaker in enumerate(speakers):
             speaker_dir = os.path.join(vctk_audio_dir, speaker)
-            speaker_audio_files += [(speaker_id, audio_file) for audio_file in list_audio_files(speaker_dir)]
+            #for audio_file in  list_audio_files(speaker_dir):
+            #    print("/".join(audio_file.split("/")[-2:]))
+            speaker_audio_files += [(speaker_id, audio_file) for audio_file in list_audio_files(speaker_dir)
+                                    if "/".join(audio_file.split("/")[-2:]) in relative_audio_file_paths]
         return speaker_audio_files
 
 

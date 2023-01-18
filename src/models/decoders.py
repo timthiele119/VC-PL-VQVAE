@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from src.models.modules import ResBlock1d, ResBlock2d
+from src.models.modules import ResBlock1d
 import torch
 from torch import nn
 
@@ -15,6 +15,17 @@ class Decoder(nn.Module):
     @abstractmethod
     def decode(self, inputs: torch.Tensor) -> torch.Tensor:
         pass
+
+
+class UpsamplingDecoder1d(Decoder):
+
+    def __init__(self, upsampling_steps: int):
+        super(UpsamplingDecoder1d, self).__init__()
+        self.upsampler = nn.Upsample(scale_factor=2**upsampling_steps)
+
+    def decode(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.upsampler(inputs)
+
 
 
 class LearnedUpsamplingDecoder1d(Decoder):
@@ -50,24 +61,3 @@ class LearnedUpsamplingResBlock1d(nn.Module):
         outs = self.upsampling(outs)
         outs = self.res_block2(outs)
         return outs
-
-
-class ResNetDecoder(Decoder):
-
-    def __init__(self, embedding_dim: int, out_channels: int):
-        super(ResNetDecoder, self).__init__()
-        self.decoding = nn.Sequential(
-            nn.Conv2d(in_channels=embedding_dim, out_channels=32, kernel_size=3, stride=1, padding="same"),
-            ResBlock2d(in_channels=32, hidden_channels=64),
-            nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=4, stride=2, padding=1),
-            ResBlock2d(in_channels=32, hidden_channels=64),
-            nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=4, stride=2, padding=1),
-            nn.Conv2d(in_channels=32, out_channels=out_channels, kernel_size=3, stride=1, padding="same")
-        )
-
-    @classmethod
-    def from_config(cls, config: dict):
-        pass
-
-    def decode(self, inputs: torch.Tensor) -> torch.Tensor:
-        return self.decoding(inputs)

@@ -18,22 +18,3 @@ class ResBlock1d(nn.Module):
 
     def forward(self, inputs):
         return inputs + self.transformation(inputs)
-
-
-class ResBlock2d(nn.Module):
-    """
-    Implements residual block as suggested in https://arxiv.org/abs/1603.05027
-    """
-    def __init__(self, in_channels: int, hidden_channels: int, kernel_size: int = 3):
-        super(ResBlock2d, self).__init__()
-        self.transformation = nn.Sequential(
-            nn.BatchNorm2d(in_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, hidden_channels, kernel_size, padding="same"),
-            nn.BatchNorm2d(hidden_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_channels, in_channels, kernel_size, padding="same")
-        )
-
-    def forward(self, x):
-        return x + self.transformation(x)

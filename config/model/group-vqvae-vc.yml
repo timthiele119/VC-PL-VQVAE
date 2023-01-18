@@ -3,42 +3,40 @@ model:
     class_path: src.models.encoders.LearnedDownsamplingEncoder1d
     init_args:
       in_channels: 1
-      hidden_channels: 2
-      out_channels: 4
+      hidden_channels: 128
+      out_channels: 128
       kernel_size: 3
-      downsampling_steps: 5
+      downsampling_steps: 6
 
   vector_quantizer:
     class_path: src.models.quantizers.GroupVectorQuantizer
     init_args:
-      embedding_dim: 4
+      embedding_dim: 128
       num_groups: 41
       num_embeddings_per_group: 10
 
   decoder:
-    class_path: src.models.decoders.LearnedUpsamplingDecoder1d
+    class_path: src.models.decoders.UpsamplingDecoder1d
     init_args:
-      in_channels: 4
-      hidden_channels: 2
-      out_channels: 2
-      kernel_size: 3
-      upsampling_steps: 5
+      upsampling_steps: 6
 
   speaker_embedding:
     class_path: src.models.speakers.SpeakerEmbedding
     init_args:
       num_speakers: 110
-      speaker_dim: 8
+      speaker_dim: 32
 
   wavenet:
     class_path: src.models.wavenet.WaveNet
     init_args:
-      residual_channels: 2
-      dilation_channels: 4
-      skip_channels: 8
-      dilation_steps: 8
-      repeats: 1
+      residual_channels: 128
+      dilation_channels: 128
+      skip_channels: 256
+      dilation_steps: 9
+      repeats: 3
       use_local_conditioning: true
-      in_channels_local_condition: 2
+      in_channels_local_condition: 128
       use_global_conditioning: true
-      in_features_global_condition: 8
+      in_features_global_condition: 32
+
+  learning_rate: 0.0001

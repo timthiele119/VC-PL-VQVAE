@@ -2,7 +2,7 @@ from abc import abstractmethod
 import torch
 from torch import nn
 from torch.nn import functional as F
-from src.models.modules import ResBlock1d, ResBlock2d
+from src.models.modules import ResBlock1d
 
 
 class Encoder(nn.Module):
@@ -73,25 +73,3 @@ class DivisibleByDownsamplingFactorPad1d(nn.Module):
         pad = (0, right_pad)
         padded_inputs = F.pad(inputs, pad, mode="constant", value=0.0)
         return padded_inputs
-
-
-class ResNetEncoder(Encoder):
-
-    def __init__(self, in_channels: int, encoding_dim: int):
-        super(ResNetEncoder, self).__init__()
-        self.encoding = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=32, kernel_size=3, stride=1, padding="same"),
-            ResBlock2d(in_channels=32, hidden_channels=64),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            ResBlock2d(in_channels=32, hidden_channels=64),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels=32, out_channels=encoding_dim, kernel_size=3, stride=1, padding="same")
-        )
-
-    @classmethod
-    def from_config(cls, config: dict):
-        pass
-
-    def encode(self, inputs: torch.Tensor) -> torch.Tensor:
-        return self.encoding(inputs)

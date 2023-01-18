@@ -14,7 +14,7 @@ from src.params import global_params
 class VQVAEVC(pl.LightningModule):
 
     def __init__(self, encoder: Encoder, vector_quantizer: VectorQuantizer, decoder: Decoder,
-                 speaker_embedding: SpeakerEmbedding, wavenet: WaveNet):
+                 speaker_embedding: SpeakerEmbedding, wavenet: WaveNet, learning_rate: float = 1e-4):
         super().__init__()
         self.mu_law_decoder = MuLawDecoding(global_params.MU_QUANTIZATION_CHANNELS)
         self.encoder = encoder
@@ -23,6 +23,7 @@ class VQVAEVC(pl.LightningModule):
         self.speaker_embedding = speaker_embedding
         self.wavenet = wavenet
         self.receptive_field_size = self.wavenet.receptive_field_size
+        self.learning_rate = learning_rate
 
         self.loss_fn = VQVAELoss(beta=0.25, reconstruction_loss_fn="cross_entropy")
 
@@ -57,4 +58,4 @@ class VQVAEVC(pl.LightningModule):
         return loss
 
     def configure_optimizers(self) -> optim.Optimizer:
-        return optim.Adam(self.parameters())
+        return optim.Adam(self.parameters(), lr=self.learning_rate)
