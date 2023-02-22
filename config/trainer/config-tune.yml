@@ -1,0 +1,2 @@
+trainer:
+  auto_lr_find: true

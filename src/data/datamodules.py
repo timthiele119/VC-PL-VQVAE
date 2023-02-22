@@ -1,18 +1,14 @@
 import pytorch_lightning as pl
-import torch
-from torch.utils.data import random_split, DataLoader
-from src.data.datasets import VCDatasetFactory
-from src.params import global_params
+from torch.utils.data import DataLoader
 
-VAL_SIZE = 10_000
-TEST_SIZE = 10_000
-SEED = 42
+from src.data.datasets import VCDatasetFactory
+from src.data.utils import MelSpecCollateFn
 
 
 class VCDataModule(pl.LightningDataModule):
 
     def __init__(self, train_dataset_class_name: str, train_dataset_init_args: dict, val_dataset_class_name: str,
-                 val_dataset_init_args: dict, batch_size: int):
+                 val_dataset_init_args: dict, batch_size: int, is_mel: bool):
         super(VCDataModule, self).__init__()
         self.train_dataset_class_name = train_dataset_class_name
         self.train_dataset_init_args = train_dataset_init_args
@@ -20,6 +16,7 @@ class VCDataModule(pl.LightningDataModule):
         self.val_dataset_init_args = val_dataset_init_args
         self.batch_size = batch_size
         self.train_dataset, self.val_dataset = None, None
+        self.collate_fn = MelSpecCollateFn() if is_mel else None
 
     def prepare_data(self):
         print("Create Train Dataset:")
@@ -32,7 +29,20 @@ class VCDataModule(pl.LightningDataModule):
         pass
 
     def train_dataloader(self) -> DataLoader:
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
 
     def val_dataloader(self) -> DataLoader:
-        return DataLoader(self.val_dataset, batch_size=self.batch_size)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self.collate_fn)
+
+
+class VCMelDataModule(VCDataModule):
+
+    def __init__(self, *args, **kwargs):
+        super(VCMelDataModule, self).__init__(*args, **kwargs)
+        self.collate_fn = MelSpecCollateFn()
+
+    def train_dataloader(self) -> DataLoader:
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self.collate_fn)
+
+    def val_dataloader(self) -> DataLoader:
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, collate_fn=self.collate_fn)

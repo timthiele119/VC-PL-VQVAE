@@ -16,14 +16,18 @@ model:
       num_embeddings_per_group: 10
 
   decoder:
-    class_path: src.models.decoders.UpsamplingDecoder1d
+    class_path: src.models.decoders.LearnedUpsamplingDecoder1d
     init_args:
+      in_channels: 128
+      hidden_channels: 128
+      out_channels: 128
+      kernel_size: 3
       upsampling_steps: 6
 
   speaker_embedding:
     class_path: src.models.speakers.SpeakerEmbedding
     init_args:
-      num_speakers: 110
+      num_speakers: 20
       speaker_dim: 32
 
   wavenet:

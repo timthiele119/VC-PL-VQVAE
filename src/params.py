@@ -1,6 +1,8 @@
 import json
+import os
 
-GLOBAL_PARAMS_FILE_PATH = "config/global_params.json"
+PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+GLOBAL_PARAMS_FILE_PATH = os.path.join(PROJECT_ROOT, "config", "global_params.json")
 
 
 class Params(dict):
