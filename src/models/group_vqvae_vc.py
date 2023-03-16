@@ -7,11 +7,11 @@ from torchaudio.transforms import MuLawDecoding
 from tqdm import tqdm
 
 from src.losses.vqvae_losses import VqVaeLoss
-from src.models.decoders import Decoder
-from src.models.encoders import Encoder
-from src.models.quantizers import VectorQuantizer
-from src.models.speakers import SpeakerEmbedding
-from src.models.wavenet import WaveNet
+from src.modules.decoders import Decoder
+from src.modules.encoders import Encoder
+from src.modules.quantizers import VectorQuantizer
+from src.modules.speakers import SpeakerEmbedding
+from src.modules.wavenet import WaveNet
 from src.params import global_params
 
 

@@ -1,46 +1,48 @@
 model:
-  encoder:
-    class_path: src.models.encoders.LearnedDownsamplingEncoder1d
-    init_args:
-      in_channels: 1
-      hidden_channels: 128
-      out_channels: 128
-      kernel_size: 3
-      downsampling_steps: 6
+  class_path: src.models.group_vqvae_vc.GroupVqVaeVc
+  init_args:
+    encoder:
+      class_path: src.modules.encoders.LearnedDownsamplingEncoder1d
+      init_args:
+        in_channels: 1
+        hidden_channels: 128
+        out_channels: 128
+        kernel_size: 3
+        downsampling_steps: 6
 
-  vector_quantizer:
-    class_path: src.models.quantizers.GroupVectorQuantizer
-    init_args:
-      embedding_dim: 128
-      num_groups: 41
-      num_embeddings_per_group: 10
+    vector_quantizer:
+      class_path: src.modules.quantizers.GroupVectorQuantizer
+      init_args:
+        embedding_dim: 128
+        num_groups: 41
+        num_embeddings_per_group: 10
 
-  decoder:
-    class_path: src.models.decoders.LearnedUpsamplingDecoder1d
-    init_args:
-      in_channels: 128
-      hidden_channels: 128
-      out_channels: 128
-      kernel_size: 3
-      upsampling_steps: 6
+    decoder:
+      class_path: src.modules.decoders.LearnedUpsamplingDecoder1d
+      init_args:
+        in_channels: 128
+        hidden_channels: 128
+        out_channels: 128
+        kernel_size: 3
+        upsampling_steps: 6
 
-  speaker_embedding:
-    class_path: src.models.speakers.SpeakerEmbedding
-    init_args:
-      num_speakers: 20
-      speaker_dim: 32
+    speaker_embedding:
+      class_path: src.modules.speakers.SpeakerEmbedding
+      init_args:
+        num_speakers: 20
+        speaker_dim: 32
 
-  wavenet:
-    class_path: src.models.wavenet.WaveNet
-    init_args:
-      residual_channels: 128
-      dilation_channels: 128
-      skip_channels: 256
-      dilation_steps: 9
-      repeats: 3
-      use_local_conditioning: true
-      in_channels_local_condition: 128
-      use_global_conditioning: true
-      in_features_global_condition: 32
+    wavenet:
+      class_path: src.modules.wavenet.WaveNet
+      init_args:
+        residual_channels: 128
+        dilation_channels: 128
+        skip_channels: 256
+        dilation_steps: 9
+        repeats: 3
+        use_local_conditioning: true
+        in_channels_local_condition: 128
+        use_global_conditioning: true
+        in_features_global_condition: 32
 
-  learning_rate: 0.0001
+    learning_rate: 0.0001

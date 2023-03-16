@@ -49,32 +49,6 @@ class LogShiftScaleMel(AudioPreprocessingStep):
         return (torch.log(self.log_shift + audio) - self.mean) / self.std
 
 
-class MelToMfcc(AudioPreprocessingStep):
-
-    def __call__(self, mel: torch.Tensor) -> torch.Tensor:
-        if len(mel.shape) == 2:
-            mel = mel.unsqueeze(0)
-        mel_ndim = mel.shape[1]
-        mel = mel.transpose(1, 2).unsqueeze(-1)
-        mel = torch.cat([mel, torch.zeros_like(mel)], dim=-1)
-        mcc = torch.fft.irfft(mel, dim=1, n=2*(mel_ndim-1)).transpose(1, 2)[:, :mel_ndim]
-        mcc[:, 0] /= 2.
-        return mcc.squeeze()
-
-
-class MfccToMel(AudioPreprocessingStep):
-
-    def __call__(self, mcc: torch.Tensor) -> torch.Tensor:
-        if len(mcc.shape) == 2:
-            mcc = mcc.unsqueeze(0)
-        mcc = mcc.transpose(1, 2)
-        mcc = torch.cat([mcc, torch.flip(mcc[:, :, 1:-1], dims=[-1])], dim=-1)
-        mcc[:, :, 0] = mcc[:, :, 0] * 2.0
-        mel = torch.fft.rfft(mcc, dim=1)
-        mel = mel[:, :, :, 0]
-        return mel.transpose(1, 2).squeeze()
-
-
 class AudioPreprocessor(AudioPreprocessingStep):
 
     def __init__(self, preprocessing_steps: List[AudioPreprocessingStep]):
