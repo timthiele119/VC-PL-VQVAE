@@ -40,4 +40,4 @@ model:
         dilation_steps: 3
         dilation_repeats: 3
 
-    learning_rate: 0.0005
+    learning_rate: 0.0001

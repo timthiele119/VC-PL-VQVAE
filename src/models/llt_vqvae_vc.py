@@ -56,5 +56,6 @@ class LltVqVaeVc(pl.LightningModule):
 
     def configure_optimizers(self) -> Any:
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
-        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.75, verbose=True)
-        return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
+        #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.75, verbose=True)
+        #return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
+        return optimizer

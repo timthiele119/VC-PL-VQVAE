@@ -224,13 +224,19 @@ class AttentionVectorQuantizer(VectorQuantizer):
 
     def __init__(self, embedding_dim: int, num_embeddings: int, heads: int):
         super(AttentionVectorQuantizer, self).__init__(embedding_dim, num_embeddings)
-        assert embedding_dim % heads == 0, f"embedding_dim={embedding_dim} must be divisible by heads={heads}"
+        assert embedding_dim % heads == 0, f"embedding_dim={embedding_dim} is not divisible by heads={heads}"
         self.head_dim = embedding_dim // heads
         self.heads = heads
-        self.linear_q = nn.Linear(embedding_dim, embedding_dim)
-        self.linear_k = nn.Linear(embedding_dim, embedding_dim)
-        self.linear_v = nn.Linear(embedding_dim, embedding_dim)
-        self.linear_out = nn.Linear(embedding_dim, embedding_dim)
+        self.linear_q = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.linear_k = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.linear_v = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.linear_out = nn.Linear(embedding_dim, embedding_dim, bias=False)
+        self.apply(self._init_params)
+
+    @staticmethod
+    def _init_params(module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.xavier_normal(module.weight)
 
     def quantize(self, encodings: torch.Tensor) -> torch.Tensor:
         q, k, v = encodings, self.codebook.T, self.codebook.T

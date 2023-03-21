@@ -62,7 +62,7 @@ model:
       class_path: src.modules.quantizers.EMAVectorQuantizer
       init_args:
         embedding_dim: 32
-        num_embeddings: 128
+        num_embeddings: 64
 
     decoder_top:
       class_path: src.modules.decoders.HleDecoder

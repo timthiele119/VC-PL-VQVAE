@@ -95,7 +95,6 @@ class WaveNetLikeCell(nn.Module):
 
     def forward(self, seq: torch.Tensor, cond: torch.Tensor = None) -> Tuple[torch.Tensor, torch.Tensor]:
         cond = self.in_cond_layer(cond).unsqueeze(-1) if cond is not None and self.in_cond_layer is not None else 0
-        #cond = 0
         gate = self.in_seq_layer(seq) + cond
         sigmoid_act = torch.sigmoid(gate[:, self.gate_dim:, :])
         tanh_act = torch.tanh(gate[:, :self.gate_dim, :])
