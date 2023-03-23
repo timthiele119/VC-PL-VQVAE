@@ -55,15 +55,15 @@ class HleVqVaeVc(pl.LightningModule):
         reconstruction, encodings, embeddings = v0, [z1, z2, z3], [q1, q2, q3]
         return reconstruction, encodings, embeddings
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
-        audio, speaker = batch
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
+        audio, _, speaker, _ = batch
         reconstruction, embeddings, encodings = self(audio, speaker)
         loss = self.loss_fn(audio, reconstruction, embeddings, encodings)
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
-        audio, speaker = batch
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
+        audio, _, speaker, _ = batch
         reconstruction, embeddings, encodings = self(audio, speaker)
         loss = self.loss_fn(audio, reconstruction, embeddings, encodings)
         self.log("val_loss", loss)
@@ -71,6 +71,4 @@ class HleVqVaeVc(pl.LightningModule):
 
     def configure_optimizers(self) -> Any:
         optimizer = optim.Adam(self.parameters(), lr=self.learning_rate)
-        #scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.75, verbose=True)
-        #return [optimizer], [{"scheduler": scheduler, "interval": "epoch"}]
         return optimizer

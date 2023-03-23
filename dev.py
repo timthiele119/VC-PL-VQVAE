@@ -2,6 +2,7 @@ import os.path
 
 import torch.cuda
 import yaml
+import numpy as np
 
 from src.data.datamodules import VCMelDataModule
 from src.models.hle_vqvae_vc import HleVqVaeVc
@@ -18,6 +19,11 @@ PATH_MODEL_CONFIC = os.path.join(PROJECT_ROOT, "config", "model", "hle-vqvae-vc.
 device = "cuda:2" if torch.cuda.is_available() else "cpu"
 
 if __name__ == "__main__":
+    #arrays = [np.random.randn(80, 492).T, np.random.randn(80, 239).T]
+    #np.savez_compressed("test.npz", arrays=arrays)
+    #ds = np.load("test.npz", allow_pickle=True)
+    #print(ds["arrays"])
+
     with open(PATH_DATA_CONFIC) as f:
         data_config = yaml.safe_load(f)["data"]
     with open(PATH_MODEL_CONFIC) as f:
@@ -26,8 +32,12 @@ if __name__ == "__main__":
     data_module = VCMelDataModule(**data_config)
     data_module.prepare_data()
     data_loader = data_module.train_dataloader()
-    audio, speaker = next(iter(data_loader))
-    audio, speaker = audio.to(device), speaker.to(device)
+    mel, wav, speaker, emotion = next(iter(data_loader))
+    mel, wav, speaker, emotion = mel.to(device), wav.to(device), speaker.to(device), emotion.to(device)
+    print(mel.shape)
+    print(wav)
+    print(speaker)
+    print(emotion)
 
     speaker_embedding = SpeakerEmbedding(**model_config["speaker_embedding"]["init_args"])
     encoder_bot = HleEncoder(**model_config["encoder_bot"]["init_args"]).to(device)
@@ -42,7 +52,7 @@ if __name__ == "__main__":
     learning_rate = model_config["learning_rate"]
     quantizer = AttentionVectorQuantizer(16, 512, 8).to(device)
 
-    _, encodings = encoder_bot(audio)
+    _, encodings = encoder_bot(mel)
     embeddings = quantizer(encodings)
 
     #model = HleVqVaeVc(speaker_embedding, encoder_bot, encoder_mid, encoder_top, quantizer_bot, quantizer_mid,

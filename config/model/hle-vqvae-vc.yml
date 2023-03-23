@@ -4,7 +4,7 @@ model:
     speaker_embedding:
       class_path: src.modules.speakers.SpeakerEmbedding
       init_args:
-        num_speakers: 20
+        num_speakers: 10
         speaker_dim: 16
 
     encoder_bot:

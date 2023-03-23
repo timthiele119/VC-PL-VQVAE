@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import List, Tuple
 
 import torch
@@ -12,29 +13,37 @@ def list_audio_files(location: str) -> List[str]:
     return audio_files
 
 
-class MelSpecCollateFn(object):
+class VCCollateFn(object):
 
     def __init__(self, max_seq_len: int = 1024):
         self.max_seq_len = max_seq_len
 
-    def __call__(self, batch) -> Tuple[torch.Tensor, torch.LongTensor]:
-        batch_size = len(batch)
-        n_mels = batch[0][0].size(0)
-        batch_seq_lengths = [seq.size(1) for seq, _ in batch]
-        batch_max_seq_len = min(self.max_seq_len, max(batch_seq_lengths))
+    def __call__(self, batch) -> Tuple[torch.Tensor, torch.Tensor, torch.LongTensor, torch.LongTensor]:
+        mels = self._pad([mel for mel, _, _, _ in batch], max_seq_len=self.max_seq_len)
+        wavs = self._pad([wav.unsqueeze(0) for _, wav, _, _ in batch]).squeeze().type(torch.int32)
+        speakers = torch.tensor([speaker for _, _, speaker, _ in batch])
+        emotions = torch.tensor([emotion for _, _, _, emotion in batch])
+        return mels, wavs, speakers, emotions
+
+    @staticmethod
+    def _pad(mels: List[torch.Tensor], max_seq_len: int = sys.maxsize) -> torch.Tensor:
+        batch_size = len(mels)
+        n_channels = mels[0].size(0)
+        batch_seq_lengths = [mel.size(1) for mel in mels]
+        batch_max_seq_len = min(max_seq_len, max(batch_seq_lengths))
         batch_max_seq_len = batch_max_seq_len + (8 - batch_max_seq_len % 8) * (batch_max_seq_len % 8 != 0)
-        padded_audio_mels = torch.zeros(batch_size, n_mels, batch_max_seq_len)
-        speakers = torch.tensor([speaker for _, speaker in batch])
-        for i, (audio_mel, _) in enumerate(batch):
+        padded_mels = torch.zeros(batch_size, n_channels, batch_max_seq_len)
+        for i, mel in enumerate(mels):
             seq_len = batch_seq_lengths[i]
             if batch_max_seq_len < seq_len:
                 start = torch.randint(low=0, high=seq_len-batch_max_seq_len, size=[1])
-                padded_audio_mels[i] = audio_mel[:, start: start + batch_max_seq_len]
+                padded_mels[i] = mel[:, start: start + batch_max_seq_len]
             else:
                 n_fits = batch_max_seq_len // seq_len
                 for j in range(n_fits):
-                    padded_audio_mels[i, :, seq_len*j: seq_len*(j+1)] = audio_mel
+                    padded_mels[i, :, seq_len*j: seq_len*(j+1)] = mel
                 remainder = batch_max_seq_len % seq_len
                 if remainder > 0:
-                    padded_audio_mels[i, :, -remainder:] = audio_mel[:, :remainder]
-        return padded_audio_mels, speakers
+                    padded_mels[i, :, -remainder:] = mel[:, :remainder]
+        return padded_mels
+

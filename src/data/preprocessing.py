@@ -3,7 +3,7 @@ from typing import List
 
 import noisereduce as nr
 import torch
-from torchaudio.transforms import MelSpectrogram
+from torchaudio.transforms import MelSpectrogram, MuLawEncoding
 
 
 class AudioPreprocessingStep(ABC):
@@ -37,6 +37,15 @@ class WavToMel(AudioPreprocessingStep):
 
     def __call__(self, audio: torch.Tensor) -> torch.Tensor:
         return self.to_mel(audio)
+
+
+class WavToMuLaw(AudioPreprocessingStep):
+
+    def __init__(self, quantization_channels: int = 256):
+        self.mu_law_encoder = MuLawEncoding(quantization_channels=quantization_channels)
+
+    def __call__(self, audio: torch.Tensor):
+        return self.mu_law_encoder(audio)
 
 
 class LogShiftScaleMel(AudioPreprocessingStep):
