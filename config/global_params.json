@@ -1,5 +1,9 @@
 {
   "MU_QUANTIZATION_CHANNELS": 256,
   "MU_QUANTIZATION_NUMPY_DTYPE": "uint8",
-  "CUDA_VISIBLE_DEVICES": 0
+  "CUDA_VISIBLE_DEVICES": 0,
+
+  "PATH_JDC_PARMS": "src/external/jdc/bst.t7",
+  "PATH_HIFIGAN_PARAMS": "src/external/hifigan_vocoder/checkpoint-2500000steps.pkl",
+  "PATH_ASR_PARAMS": "src/external/asr/epoch_00100.pth"
 }

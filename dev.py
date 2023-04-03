@@ -4,40 +4,45 @@ import torch.cuda
 import yaml
 import numpy as np
 
-from src.data.datamodules import VCMelDataModule
+from src.data.datamodules import VCDataModule
+from src.external.jdc.model import JDCNet
 from src.models.hle_vqvae_vc import HleVqVaeVc
 from src.modules.speakers import SpeakerEmbedding
 from src.modules.quantizers import EMAVectorQuantizer, AttentionVectorQuantizer
 from src.modules.encoders import HleEncoder
 from src.modules.decoders import HleDecoder
 from src.losses.vqvae_losses import HierarchicalVqVaeLoss
-from src.params import PROJECT_ROOT
+from src.params import PROJECT_ROOT, global_params
 
-PATH_DATA_CONFIC = os.path.join(PROJECT_ROOT, "config", "data", "vctk20", "vctk20mel-24kHZ.yml")
+PATH_DATA_CONFIC = os.path.join(PROJECT_ROOT, "config", "data", "esd_eng", "esd_eng-24kHZ.yml")
 PATH_MODEL_CONFIC = os.path.join(PROJECT_ROOT, "config", "model", "hle-vqvae-vc.yml")
 
 device = "cuda:2" if torch.cuda.is_available() else "cpu"
 
 if __name__ == "__main__":
-    #arrays = [np.random.randn(80, 492).T, np.random.randn(80, 239).T]
-    #np.savez_compressed("test.npz", arrays=arrays)
-    #ds = np.load("test.npz", allow_pickle=True)
-    #print(ds["arrays"])
 
     with open(PATH_DATA_CONFIC) as f:
         data_config = yaml.safe_load(f)["data"]
     with open(PATH_MODEL_CONFIC) as f:
         model_config = yaml.safe_load(f)["model"]
 
-    data_module = VCMelDataModule(**data_config)
+    data_module = VCDataModule(**data_config)
     data_module.prepare_data()
     data_loader = data_module.train_dataloader()
     mel, wav, speaker, emotion = next(iter(data_loader))
     mel, wav, speaker, emotion = mel.to(device), wav.to(device), speaker.to(device), emotion.to(device)
-    print(mel.shape)
-    print(wav)
-    print(speaker)
-    print(emotion)
+
+    # FO Model
+    F0_model = JDCNet(num_class=1)
+    F0_model.load_state_dict(torch.load(global_params.PATH_JDC_PARMS)["net"])
+    _ = F0_model.eval()
+    F0_model.to(device)
+    mel_red = mel.unsqueeze(1)
+    print(mel_red.shape)
+    f0, _, _ = F0_model(mel_red)
+    print(f0.shape)
+    print(f0)
+
 
     speaker_embedding = SpeakerEmbedding(**model_config["speaker_embedding"]["init_args"])
     encoder_bot = HleEncoder(**model_config["encoder_bot"]["init_args"]).to(device)

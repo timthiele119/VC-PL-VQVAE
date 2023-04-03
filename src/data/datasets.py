@@ -11,6 +11,8 @@ import yaml
 
 from src.data.utils import list_audio_files
 from src.data import preprocessing
+from src.external.jdc.model import JDCNet
+from src.params import global_params
 
 
 EMOTIONS = ["neutral", "angry", "happy", "sad", "surprise"]
@@ -38,6 +40,7 @@ class VCDataset(Dataset):
         self.hop_length = hop_length
         self.win_length = win_length
         self.n_mels = n_mels
+        self.f0_model = JDCNet(num_class=1).load_state_dict(torch.load(global_params.PATH_JDC_PARMS)["net"])
         if not os.path.isfile(self.dataset_path):
             self._create_dataset()
         self.data = None
@@ -50,13 +53,16 @@ class VCDataset(Dataset):
     def _create_dataset(self):
         if not os.path.exists(self.root):
             os.makedirs(self.root)
-        speakers, emotions, mels, wavs = [], [], [], []
+        speakers, emotions, mels, wavs, f0s = [], [], [], [], []
         for data in self._get_data():
             speaker, emotion, audio = data["speaker"], data["emotion"], data["audio"]
+            mel, wav = self._extract_mel(audio), self._extract_wav(audio)
+            pitch = self._extract_pitch(mel)
             speakers.append(speaker)
             emotions.append(emotion)
-            mels.append(self._extract_mel(audio))
-            wavs.append(self._extract_wav(audio))
+            mels.append(mel)
+            wavs.append(wav)
+            f0s.append(pitch)
         np.savez_compressed(self.dataset_path, speakers=speakers, emotions=emotions, mels=mels, wavs=wavs)
 
     def _extract_mel(self, audio: np.ndarray) -> np.ndarray:
@@ -66,6 +72,9 @@ class VCDataset(Dataset):
     def _extract_wav(self,  audio: np.ndarray) -> np.ndarray:
         wav = self.wav_audio_preprocessing(torch.tensor(audio))
         return wav.numpy()
+
+    def _extract_pitch(self, mel: torch.Tensor) -> torch.Tensor:
+        self.f0_model()
 
     def _load_dataset(self):
         data = np.load(self.dataset_path, allow_pickle=True)
