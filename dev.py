@@ -8,7 +8,7 @@ from src.data.datamodules import VCDataModule
 from src.external.jdc.model import JDCNet
 from src.models.hle_vqvae_vc import HleVqVaeVc
 from src.modules.speakers import SpeakerEmbedding
-from src.modules.quantizers import EMAVectorQuantizer, AttentionVectorQuantizer
+from src.modules.quantizers import VanillaVectorQuantizer, AttentionVectorQuantizer
 from src.modules.encoders import HleEncoder
 from src.modules.decoders import HleDecoder
 from src.losses.vqvae_losses import HierarchicalVqVaeLoss
@@ -21,6 +21,10 @@ device = "cuda:2" if torch.cuda.is_available() else "cpu"
 
 if __name__ == "__main__":
 
+    t = torch.tensor(range(4*6)).view(4, 6).contiguous()
+    print(t)
+    print(t.repeat_interleave(2, dim=1))
+
     with open(PATH_DATA_CONFIC) as f:
         data_config = yaml.safe_load(f)["data"]
     with open(PATH_MODEL_CONFIC) as f:
@@ -32,12 +36,14 @@ if __name__ == "__main__":
     mel, wav, speaker, emotion = next(iter(data_loader))
     mel, wav, speaker, emotion = mel.to(device), wav.to(device), speaker.to(device), emotion.to(device)
 
+
+
     # FO Model
     F0_model = JDCNet(num_class=1)
     F0_model.load_state_dict(torch.load(global_params.PATH_JDC_PARMS)["net"])
     _ = F0_model.eval()
     F0_model.to(device)
-    mel_red = mel.unsqueeze(1)
+    mel_red = mel[0].unsqueeze(0).unsqueeze(1)
     print(mel_red.shape)
     f0, _, _ = F0_model(mel_red)
     print(f0.shape)
@@ -48,9 +54,9 @@ if __name__ == "__main__":
     encoder_bot = HleEncoder(**model_config["encoder_bot"]["init_args"]).to(device)
     encoder_mid = HleEncoder(**model_config["encoder_mid"]["init_args"])
     encoder_top = HleEncoder(**model_config["encoder_top"]["init_args"])
-    quantizer_bot = EMAVectorQuantizer(**model_config["quantizer_bot"]["init_args"])
-    quantizer_mid = EMAVectorQuantizer(**model_config["quantizer_mid"]["init_args"])
-    quantizer_top = EMAVectorQuantizer(**model_config["quantizer_top"]["init_args"])
+    quantizer_bot = VanillaVectorQuantizer(**model_config["quantizer_bot"]["init_args"])
+    quantizer_mid = VanillaVectorQuantizer(**model_config["quantizer_mid"]["init_args"])
+    quantizer_top = VanillaVectorQuantizer(**model_config["quantizer_top"]["init_args"])
     decoder_bot = HleDecoder(**model_config["decoder_bot"]["init_args"])
     decoder_mid = HleDecoder(**model_config["decoder_mid"]["init_args"])
     decoder_top = HleDecoder(**model_config["decoder_top"]["init_args"])

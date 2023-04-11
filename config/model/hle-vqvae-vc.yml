@@ -47,22 +47,22 @@ model:
         dilation_repeats: 3
 
     quantizer_bot:
-      class_path: src.modules.quantizers.EMAVectorQuantizer
-      init_args:
-        embedding_dim: 32
-        num_embeddings: 256
-
-    quantizer_mid:
-      class_path: src.modules.quantizers.EMAVectorQuantizer
+      class_path: src.modules.quantizers.VanillaVectorQuantizer
       init_args:
         embedding_dim: 32
         num_embeddings: 128
 
-    quantizer_top:
-      class_path: src.modules.quantizers.EMAVectorQuantizer
+    quantizer_mid:
+      class_path: src.modules.quantizers.VanillaVectorQuantizer
       init_args:
         embedding_dim: 32
-        num_embeddings: 64
+        num_embeddings: 64  
+
+    quantizer_top:
+      class_path: src.modules.quantizers.VanillaVectorQuantizer
+      init_args:
+        embedding_dim: 32
+        num_embeddings: 32
 
     decoder_top:
       class_path: src.modules.decoders.HleDecoder

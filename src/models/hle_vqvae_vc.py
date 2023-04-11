@@ -7,7 +7,7 @@ from torch import optim
 from src.losses.vqvae_losses import HierarchicalVqVaeLoss
 from src.modules.decoders import HleDecoder
 from src.modules.encoders import HleEncoder
-from src.modules.quantizers import EMAVectorQuantizer
+from src.modules.quantizers import VectorQuantizer
 from src.modules.speakers import SpeakerEmbedding
 
 
@@ -19,9 +19,9 @@ class HleVqVaeVc(pl.LightningModule):
             encoder_bot: HleEncoder,
             encoder_mid: HleEncoder,
             encoder_top: HleEncoder,
-            quantizer_bot: EMAVectorQuantizer,
-            quantizer_mid: EMAVectorQuantizer,
-            quantizer_top: EMAVectorQuantizer,
+            quantizer_bot: VectorQuantizer,
+            quantizer_mid: VectorQuantizer,
+            quantizer_top: VectorQuantizer,
             decoder_bot: HleDecoder,
             decoder_mid: HleDecoder,
             decoder_top: HleDecoder,

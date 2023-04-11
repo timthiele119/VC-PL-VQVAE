@@ -7,7 +7,7 @@ from torch import optim
 from src.losses.vqvae_losses import VqVaeLoss
 from src.modules.decoders import HleDecoder
 from src.modules.encoders import HleEncoder
-from src.modules.quantizers import EMAVectorQuantizer
+from src.modules.quantizers import VanillaVectorQuantizer
 from src.modules.speakers import SpeakerEmbedding
 
 
@@ -17,7 +17,7 @@ class VqVaeVc(pl.LightningModule):
             self,
             speaker_embedding: SpeakerEmbedding,
             encoder: HleEncoder,
-            quantizer: EMAVectorQuantizer,
+            quantizer: VanillaVectorQuantizer,
             decoder: HleDecoder,
             learning_rate: float = 0.0005
     ):
