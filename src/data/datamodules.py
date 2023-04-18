@@ -1,5 +1,7 @@
+from typing import Dict, List
+
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset
 
 from src.data.datasets import VCDatasetFactory
 from src.data.utils import VCCollateFn
@@ -7,23 +9,32 @@ from src.data.utils import VCCollateFn
 
 class VCDataModule(pl.LightningDataModule):
 
-    def __init__(self, train_dataset_class_name: str, train_dataset_init_args: dict, val_dataset_class_name: str,
-                 val_dataset_init_args: dict, batch_size: int):
+    def __init__(self, train_datasets: Dict[str, Dict], val_datasets: Dict[str, Dict], batch_size: int):
         super(VCDataModule, self).__init__()
-        self.train_dataset_class_name = train_dataset_class_name
-        self.train_dataset_init_args = train_dataset_init_args
-        self.val_dataset_class_name = val_dataset_class_name
-        self.val_dataset_init_args = val_dataset_init_args
+        self.train_datasets = train_datasets
+        self.val_datasets = val_datasets
         self.batch_size = batch_size
         self.train_dataset, self.val_dataset = None, None
         self.collate_fn = VCCollateFn()
 
     def prepare_data(self):
-        print("Create Train Dataset")
-        self.train_dataset = VCDatasetFactory.create_dataset(self.train_dataset_class_name,
-                                                             self.train_dataset_init_args)
         print("Create Val Dataset")
-        self.val_dataset = VCDatasetFactory.create_dataset(self.val_dataset_class_name, self.val_dataset_init_args)
+        self.val_dataset = self.prepare_datasets(self.val_datasets)
+
+        print("Create Train Dataset")
+        self.train_dataset = self.prepare_datasets(self.train_datasets)
+
+    @staticmethod
+    def prepare_datasets(datasets: Dict[str, Dict]):
+        concat_datasets = []
+        speaker_increment = 0
+        for class_name, init_args in datasets.items():
+            dataset = VCDatasetFactory.create_dataset(class_name, init_args)
+            max_speaker_id = dataset.get_max_speaker_id()
+            dataset.increment_speakers(speaker_increment)
+            speaker_increment += max_speaker_id + 1
+            concat_datasets.append(dataset)
+        return ConcatDataset(concat_datasets)
 
     def setup(self, stage: str):
         pass

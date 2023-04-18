@@ -18,12 +18,13 @@ class VCCollateFn(object):
     def __init__(self, max_seq_len: int = 1024):
         self.max_seq_len = max_seq_len
 
-    def __call__(self, batch) -> Tuple[torch.Tensor, torch.Tensor, torch.LongTensor, torch.LongTensor]:
-        mels = self._pad([mel for mel, _, _, _ in batch], max_seq_len=self.max_seq_len)
-        wavs = self._pad([wav.unsqueeze(0) for _, wav, _, _ in batch]).squeeze().type(torch.int32)
-        speakers = torch.tensor([speaker for _, _, speaker, _ in batch])
-        emotions = torch.tensor([emotion for _, _, _, emotion in batch])
-        return mels, wavs, speakers, emotions
+    def __call__(self, batch) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.LongTensor, torch.LongTensor]:
+        mels = self._pad([mel for mel, _, _, _, _ in batch], max_seq_len=self.max_seq_len)
+        mfccs = self._pad([mfcc for _, mfcc, _, _, _ in batch], max_seq_len=self.max_seq_len)
+        wavs = self._pad([wav.unsqueeze(0) for _, _, wav, _, _ in batch]).squeeze().type(torch.int32)
+        speakers = torch.tensor([speaker for _, _, _, speaker, _ in batch])
+        emotions = torch.tensor([emotion for _, _, _, _, emotion in batch])
+        return mels, mfccs, wavs, speakers, emotions
 
     @staticmethod
     def _pad(mels: List[torch.Tensor], max_seq_len: int = sys.maxsize) -> torch.Tensor:

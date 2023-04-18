@@ -1,0 +1,54 @@
+data:
+  train_datasets:
+    ESDDataset:
+      root_dir: ./data/esd_eng/esd_eng-24kHZ-train
+      dataset_specific_config:
+        esd_speaker_list: ./config/data/esd_eng/split/speakers_eng_list.txt
+        esd_audio_dir: /scratch/sghosh/dataset/ESD/EmotionalSpeechDataset
+        esd_split: train
+      sr: 24000
+      n_fft: 2048
+      hop_length: 300
+      win_length: 1200
+      n_mels: 80
+      n_mfcc: 13
+    VCTKDataset:
+      root_dir: ./data/vctk20/vctk20-24kHZ-val
+      dataset_specific_config:
+        vctk_speaker_list: ./config/data/vctk20/split/speakers_20_list.txt
+        vctk_audio_dir: /scratch/sghosh/datasets/vctkall-voxceleb-24k
+        vctk_relative_audio_path_list: ./config/data/vctk20/split/val_20_list.txt
+      sr: 24000
+      n_fft: 2048
+      hop_length: 300
+      win_length: 1200
+      n_mels: 80
+      n_mfcc: 13
+
+  val_datasets:
+    ESDDataset:
+      root_dir: ./data/esd_eng/esd_eng-24kHZ-val
+      dataset_specific_config:
+        esd_speaker_list: ./config/data/esd_eng/split/speakers_eng_list.txt
+        esd_audio_dir: /scratch/sghosh/dataset/ESD/EmotionalSpeechDataset
+        esd_split: test
+      sr: 24000
+      n_fft: 2048
+      hop_length: 300
+      win_length: 1200
+      n_mels: 80
+      n_mfcc: 13
+    VCTKDataset:
+      root_dir: ./data/vctk20/vctk20-24kHZ-val
+      dataset_specific_config:
+        vctk_speaker_list: ./config/data/vctk20/split/speakers_20_list.txt
+        vctk_audio_dir: /scratch/sghosh/datasets/vctkall-voxceleb-24k
+        vctk_relative_audio_path_list: ./config/data/vctk20/split/val_20_list.txt
+      sr: 24000
+      n_fft: 2048
+      hop_length: 300
+      win_length: 1200
+      n_mels: 80
+      n_mfcc: 13
+
+  batch_size: 64

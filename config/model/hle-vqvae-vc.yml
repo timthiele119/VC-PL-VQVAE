@@ -4,7 +4,7 @@ model:
     speaker_embedding:
       class_path: src.modules.speakers.SpeakerEmbedding
       init_args:
-        num_speakers: 10
+        num_speakers: 30
         speaker_dim: 16
 
     encoder_bot:
@@ -50,19 +50,19 @@ model:
       class_path: src.modules.quantizers.VanillaVectorQuantizer
       init_args:
         embedding_dim: 32
-        num_embeddings: 128
+        num_embeddings: 64
 
     quantizer_mid:
       class_path: src.modules.quantizers.VanillaVectorQuantizer
       init_args:
         embedding_dim: 32
-        num_embeddings: 64  
+        num_embeddings: 32
 
     quantizer_top:
       class_path: src.modules.quantizers.VanillaVectorQuantizer
       init_args:
         embedding_dim: 32
-        num_embeddings: 32
+        num_embeddings: 16
 
     decoder_top:
       class_path: src.modules.decoders.HleDecoder

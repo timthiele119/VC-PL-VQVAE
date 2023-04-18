@@ -56,14 +56,14 @@ class HleVqVaeVc(pl.LightningModule):
         return reconstruction, encodings, embeddings
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
-        audio, _, speaker, _ = batch
+        audio, mfcc, _, speaker, _ = batch
         reconstruction, embeddings, encodings = self(audio, speaker)
         loss = self.loss_fn(audio, reconstruction, embeddings, encodings)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
-        audio, _, speaker, _ = batch
+        audio, mfcc, _, speaker, _ = batch
         reconstruction, embeddings, encodings = self(audio, speaker)
         loss = self.loss_fn(audio, reconstruction, embeddings, encodings)
         self.log("val_loss", loss)

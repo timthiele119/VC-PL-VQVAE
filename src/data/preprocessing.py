@@ -3,7 +3,7 @@ from typing import List
 
 import noisereduce as nr
 import torch
-from torchaudio.transforms import MelSpectrogram, MuLawEncoding
+from torchaudio.transforms import MelSpectrogram, MuLawEncoding, MFCC
 
 
 class AudioPreprocessingStep(ABC):
@@ -32,11 +32,22 @@ class Normalize(AudioPreprocessingStep):
 
 class WavToMel(AudioPreprocessingStep):
 
-    def __init__(self, n_fft: int, hop_length: int, win_length: int, n_mels: int):
-        self.to_mel = MelSpectrogram(n_mels=n_mels, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+    def __init__(self, sr: int, n_fft: int, hop_length: int, win_length: int, n_mels: int):
+        self.to_mel = MelSpectrogram(sample_rate=sr, n_mels=n_mels, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
 
     def __call__(self, audio: torch.Tensor) -> torch.Tensor:
         return self.to_mel(audio)
+
+
+class WavToMFCC(AudioPreprocessingStep):
+
+    def __init__(self, sr: int, n_mfcc: int, n_fft: int, hop_length: int, win_length: int, n_mels: int):
+        self.to_mfcc = MFCC(sample_rate=sr, n_mfcc=n_mfcc, log_mels=True,
+                            melkwargs={"n_fft": n_fft, "hop_length": hop_length, "win_length": win_length,
+                                       "n_mels": n_mels})
+
+    def __call__(self, audio: torch.Tensor):
+        return self.to_mfcc(audio)
 
 
 class WavToMuLaw(AudioPreprocessingStep):

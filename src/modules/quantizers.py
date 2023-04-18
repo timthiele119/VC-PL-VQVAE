@@ -17,7 +17,7 @@ class VectorQuantizer(nn.Module):
         super(VectorQuantizer, self).__init__()
         self.D = embedding_dim
         self.K = num_embeddings
-        self.codebook = torch.nn.Parameter(torch.Tensor(self.D, self.K).uniform_(-1/(self.K*1e10), 1/(self.K*1e10)),
+        self.codebook = torch.nn.Parameter(torch.Tensor(self.D, self.K).uniform_(-1/(self.K*1e5), 1/(self.K*1e5)),
                                            requires_grad=True)
 
     def forward(self, encodings: torch.Tensor) -> torch.Tensor:
@@ -126,7 +126,7 @@ class VanillaVectorQuantizer(VectorQuantizer):
                     replace_encoding_indices = torch.multinomial(torch.ones(encodings.size(0)), num_unused_codewords,
                                                                  replacement=True)
                     replace_encodings = encodings[replace_encoding_indices].T
-                    replace_encodings += torch.rand_like(replace_encodings) * 1e-6
+                    replace_encodings += torch.rand_like(replace_encodings) * 1e-10
                     self.codebook[:, unused_codewords] = replace_encodings
                     if self._ema_active:
                         self._mean_encodings[:, unused_codewords] = replace_encodings
