@@ -5,6 +5,9 @@ from typing import List, Tuple
 import torch
 
 
+EMOTIONS = ["neutral", "angry", "happy", "sad", "surprise"]
+
+
 def list_audio_files(location: str) -> List[str]:
     audio_files = []
     for root, dirs, files in os.walk(location):

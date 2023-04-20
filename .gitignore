@@ -186,3 +186,6 @@ fabric.properties
 
 # Pytorch-Lightning
 lightning_logs/
+
+# Audio Files
+reports/audios/*

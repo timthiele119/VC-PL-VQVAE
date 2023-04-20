@@ -25,6 +25,7 @@ class HleVqVaeVc(pl.LightningModule):
             decoder_bot: HleDecoder,
             decoder_mid: HleDecoder,
             decoder_top: HleDecoder,
+            use_mfcc_input: bool = False,
             learning_rate: float = 0.0005
     ):
         super(HleVqVaeVc, self).__init__()
@@ -34,6 +35,7 @@ class HleVqVaeVc(pl.LightningModule):
         self.quantizer_bot, self.quantizer_mid, self.quantizer_top = quantizer_bot, quantizer_mid, quantizer_top
         self.decoder_bot, self.decoder_mid, self.decoder_top = decoder_bot, decoder_mid, decoder_top
         self.loss_fn = HierarchicalVqVaeLoss(beta=0.25, reconstruction_loss_fn="mse")
+        self.use_mfcc_input = use_mfcc_input
         self.learning_rate = learning_rate
 
     def forward(self, audio: torch.Tensor, speaker: torch.Tensor) \
@@ -56,16 +58,18 @@ class HleVqVaeVc(pl.LightningModule):
         return reconstruction, encodings, embeddings
 
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
-        audio, mfcc, _, speaker, _ = batch
+        mel, mfcc, _, speaker, _ = batch
+        audio = mfcc if self.use_mfcc_input else mel
         reconstruction, embeddings, encodings = self(audio, speaker)
-        loss = self.loss_fn(audio, reconstruction, embeddings, encodings)
+        loss = self.loss_fn(mel, reconstruction, embeddings, encodings)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
-        audio, mfcc, _, speaker, _ = batch
+        mel, mfcc, _, speaker, _ = batch
+        audio = mfcc if self.use_mfcc_input else mel
         reconstruction, embeddings, encodings = self(audio, speaker)
-        loss = self.loss_fn(audio, reconstruction, embeddings, encodings)
+        loss = self.loss_fn(mel, reconstruction, embeddings, encodings)
         self.log("val_loss", loss)
         return loss
 

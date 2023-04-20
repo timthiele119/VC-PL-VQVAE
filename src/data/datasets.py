@@ -9,13 +9,10 @@ from torch.utils.data import Dataset
 from typing import List, Dict
 import yaml
 
-from src.data.utils import list_audio_files
+from src.data.utils import list_audio_files, EMOTIONS
 from src.data import preprocessing
 from src.external.jdc.model import JDCNet
 from src.params import global_params
-
-
-EMOTIONS = ["neutral", "angry", "happy", "sad", "surprise"]
 
 
 class VCDataset(Dataset):
