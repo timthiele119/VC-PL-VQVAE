@@ -1,9 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import List
 
+import librosa
 import noisereduce as nr
 import torch
 from torchaudio.transforms import MelSpectrogram, MuLawEncoding, MFCC
+
+from src.external.jdc.model import JDCNet
+from src.params import global_params
 
 
 class AudioPreprocessingStep(ABC):
@@ -33,21 +37,44 @@ class Normalize(AudioPreprocessingStep):
 class WavToMel(AudioPreprocessingStep):
 
     def __init__(self, sr: int, n_fft: int, hop_length: int, win_length: int, n_mels: int):
-        self.to_mel = MelSpectrogram(sample_rate=sr, n_mels=n_mels, n_fft=n_fft, win_length=win_length, hop_length=hop_length)
+        self.sr = sr
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.win_length = win_length
+        self.n_mels = n_mels
 
     def __call__(self, audio: torch.Tensor) -> torch.Tensor:
-        return self.to_mel(audio)
+        mel = librosa.feature.melspectrogram(y=audio.numpy(), sr=self.sr, n_fft=self.n_fft, hop_length=self.hop_length,
+                                             win_length=self.win_length, n_mels=self.n_mels)
+        return torch.tensor(mel)
 
 
 class WavToMFCC(AudioPreprocessingStep):
 
     def __init__(self, sr: int, n_mfcc: int, n_fft: int, hop_length: int, win_length: int, n_mels: int):
-        self.to_mfcc = MFCC(sample_rate=sr, n_mfcc=n_mfcc, log_mels=True,
-                            melkwargs={"n_fft": n_fft, "hop_length": hop_length, "win_length": win_length,
-                                       "n_mels": n_mels})
+        self.sr = sr
+        self.n_mfcc = n_mfcc
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.win_length = win_length
+        self.n_mels = n_mels
 
     def __call__(self, audio: torch.Tensor):
-        return self.to_mfcc(audio)
+        mfcc = librosa.feature.mfcc(y=audio.numpy(), sr=self.sr, n_mfcc=self.n_mfcc, n_fft=self.n_fft,
+                                    hop_length=self.hop_length, win_length=self.win_length, n_mels=self.n_mels)
+        return torch.tensor(mfcc)
+
+
+class MelToF0(AudioPreprocessingStep):
+
+    def __init__(self):
+        self.f0_model = JDCNet(num_class=1)
+        self.f0_model.load_state_dict(torch.load(global_params.PATH_JDC_PARMS)["net"])
+
+    def __call__(self, audio: torch.Tensor):
+        with torch.no_grad():
+            f0, _, _ = self.f0_model(audio.unsqueeze(0).unsqueeze(1))
+            return f0
 
 
 class WavToMuLaw(AudioPreprocessingStep):

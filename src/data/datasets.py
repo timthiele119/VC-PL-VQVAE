@@ -11,8 +11,6 @@ import yaml
 
 from src.data.utils import list_audio_files, EMOTIONS
 from src.data import preprocessing
-from src.external.jdc.model import JDCNet
-from src.params import global_params
 
 
 class VCDataset(Dataset):
@@ -36,12 +34,14 @@ class VCDataset(Dataset):
             preprocessing.Normalize(),
             preprocessing.WavToMFCC(sr, n_mfcc, n_fft, hop_length, win_length, n_mels)
         ])
+        self.f0_audio_preprocessing = preprocessing.AudioPreprocessor([
+            preprocessing.MelToF0()
+        ])
         self.sr = sr
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.win_length = win_length
         self.n_mels = n_mels
-        self.f0_model = JDCNet(num_class=1).load_state_dict(torch.load(global_params.PATH_JDC_PARMS)["net"])
         if not os.path.isfile(self.dataset_path):
             self._create_dataset()
         self.data = None
@@ -54,18 +54,19 @@ class VCDataset(Dataset):
     def _create_dataset(self):
         if not os.path.exists(self.root):
             os.makedirs(self.root)
-        speakers, emotions, mels, wavs, mfccs = [], [], [], [], []
+        speakers, emotions, mels, wavs, mfccs, f0s = [], [], [], [], [], []
         for data in self._get_data():
             speaker, emotion, audio = data["speaker"], data["emotion"], data["audio"]
             mel, wav, mfcc = self._extract_mel(audio), self._extract_wav(audio), self._extract_mfcc(audio)
-            #pitch = self._extract_pitch(mel)
+            f0 = self._extract_f0(mel)
             speakers.append(speaker)
             emotions.append(emotion)
             mels.append(mel)
             wavs.append(wav)
             mfccs.append(mfcc)
-            #f0s.append(pitch)
-        np.savez_compressed(self.dataset_path, speakers=speakers, emotions=emotions, mels=mels, wavs=wavs, mfccs=mfccs)
+            f0s.append(f0)
+        np.savez_compressed(self.dataset_path, speakers=speakers, emotions=emotions, mels=mels, wavs=wavs, mfccs=mfccs,
+                            f0s=f0s)
 
     def _extract_mel(self, audio: np.ndarray) -> np.ndarray:
         mel = self.mel_audio_preprocessing(torch.tensor(audio))
@@ -79,21 +80,23 @@ class VCDataset(Dataset):
         mfcc = self.mfcc_audio_preprocessing(torch.tensor(audio))
         return mfcc.numpy().T
 
-    def _extract_pitch(self, mel: torch.Tensor) -> torch.Tensor:
-        self.f0_model()
+    def _extract_f0(self, mel: torch.Tensor) -> torch.Tensor:
+        f0 = self.f0_audio_preprocessing(torch.tensor(mel.T))
+        return f0.numpy()
 
     def _load_dataset(self):
         data = np.load(self.dataset_path, allow_pickle=True)
-        data = [[torch.tensor(mel).T, torch.tensor(mfcc).T, torch.tensor(wav), speaker, emotion]
-                for mel, mfcc, wav, speaker, emotion in zip(data["mels"], data["mfccs"], data["wavs"], data["speakers"], data["emotions"])]
+        data = [[torch.tensor(mel).T, torch.tensor(mfcc).T, torch.tensor(wav), torch.tensor(f0), speaker, emotion]
+                for mel, mfcc, wav, f0, speaker, emotion in zip(data["mels"], data["mfccs"], data["wavs"], data["f0s"],
+                                                                data["speakers"], data["emotions"])]
         self.data = data
 
     def get_max_speaker_id(self):
-        return max([speaker for _, _, _, speaker, _ in self.data])
+        return max([speaker for _, _, _, _, speaker, _ in self.data])
 
     def increment_speakers(self, increment: int):
         for i in range(len(self)):
-            self.data[i][3] += increment
+            self.data[i][4] += increment
 
     def __len__(self):
         return len(self.data)

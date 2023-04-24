@@ -84,6 +84,11 @@ class WaveNetLikeCell(nn.Module):
                 nn.Linear(in_features=gate_dim, out_features=2*gate_dim),
                 nn.ReLU(inplace=True)
             )
+            for layer in self.in_cond_layer:
+                if isinstance(layer, nn.Linear):
+                    nn.init.kaiming_uniform(layer.weight)
+                    layer.bias.data.fill_(0.01)
+
         self.residual_layer = nn.Sequential(
             HleConv1d(in_channels=gate_dim, out_channels=residual_dim, kernel_size=kernel_size),
             nn.InstanceNorm1d(residual_dim, momentum=0.25)

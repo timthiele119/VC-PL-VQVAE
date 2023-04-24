@@ -4,7 +4,6 @@ import os
 PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 GLOBAL_PARAMS_FILE_PATH = os.path.join(PROJECT_ROOT, "config", "global_params.json")
 
-
 class Params(dict):
 
     def __init__(self, config_file_path: str, *args, **kwargs):
