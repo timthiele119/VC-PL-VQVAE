@@ -179,7 +179,6 @@ dependencies:
   - libxkbcommon=1.0.1=hfa300c1_0
   - libxml2=2.9.14=h74e7548_0
   - libxslt=1.1.35=h4e12654_0
-  - lightning-utilities=0.5.0=pyhd8ed1ab_0
   - llvmlite=0.39.1=py310he621ea3_0
   - lxml=4.9.1=py310h1edc446_0
   - lz4-c=1.9.3=h295c915_1
@@ -311,16 +310,24 @@ dependencies:
       - argcomplete==2.0.0
       - docstring-parser==0.15
       - filelock==3.9.0
+      - fire==0.5.0
       - gdown==4.6.0
       - h5py==3.8.0
+      - huggingface-hub==0.14.1
       - importlib-resources==5.10.2
       - jsonargparse==4.19.0
       - kaldiio==2.17.2
+      - lightning-utilities==0.3.0
       - noisereduce==2.0.1
       - pyqt5-sip==12.11.0
       - pyyaml==6.0
+      - regex==2023.3.23
       - tensorboardx==2.5.1
+      - termcolor==2.3.0
+      - tokenizers==0.13.3
+      - transformers==4.28.1
       - typeshed-client==2.1.0
+      - wvmos==1.0
       - xmltodict==0.13.0
       - yq==3.1.0
 prefix: /project/fdreyer/miniconda3/envs/emonymous
