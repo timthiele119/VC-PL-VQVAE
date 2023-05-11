@@ -16,14 +16,13 @@ from src.data import preprocessing
 class VCDataset(Dataset):
 
     def __init__(self, root_dir: str, dataset_specific_config: dict, sr: int, n_fft: int, hop_length: int,
-                 win_length: int, n_mels: int, n_mfcc: int = 13):
+                 win_length: int, n_mels: int, n_mfcc: int = 13, features: List[str] = None):
         super(VCDataset, self).__init__()
         self.root = root_dir
         self.dataset_path = os.path.join(self.root, "dataset.npz")
         self.dataset_specific_config = dataset_specific_config
         self.wav_audio_preprocessing = preprocessing.AudioPreprocessor([
-            preprocessing.Normalize(),
-            preprocessing.WavToMuLaw()
+            preprocessing.Normalize()
         ])
         self.mel_audio_preprocessing = preprocessing.AudioPreprocessor([
             preprocessing.Normalize(),
@@ -45,6 +44,23 @@ class VCDataset(Dataset):
         if not os.path.isfile(self.dataset_path):
             self._create_dataset()
         self.data = None
+        self.feature_temporal = {
+            "mels": True,
+            "mfccs": True,
+            "wavs": True,
+            "f0s": True,
+            "speakers": False,
+            "emotions": False,
+        }
+        self.feature_transpose = {
+            "mels": True,
+            "mfccs": True,
+            "wavs": False,
+            "f0s": False,
+            "speakers": False,
+            "emotions": False
+        }
+        self.feature_names = features if features is not None else list(self.feature_temporal.keys())
         self._load_dataset()
 
     @abstractmethod
@@ -86,23 +102,31 @@ class VCDataset(Dataset):
 
     def _load_dataset(self):
         data = np.load(self.dataset_path, allow_pickle=True)
-        data = [[torch.tensor(mel).T, torch.tensor(mfcc).T, torch.tensor(wav), torch.tensor(f0), speaker, emotion]
-                for mel, mfcc, wav, f0, speaker, emotion in zip(data["mels"], data["mfccs"], data["wavs"], data["f0s"],
-                                                                data["speakers"], data["emotions"])]
-        self.data = data
+        self.data = []
+        for example_feature_values in zip(*(data[feature_name] for feature_name in self.feature_names)):
+            example = {feature_name: torch.tensor(feature_value) if not self.feature_transpose[feature_name]
+                                     else torch.tensor(feature_value).T
+                       for feature_name, feature_value
+                       in zip(self.feature_names, example_feature_values)}
+            self.data.append(example)
+        #print(self.data)
+        #data = [[torch.tensor(mel).T, torch.tensor(mfcc).T, torch.tensor(wav), torch.tensor(f0), speaker, emotion]
+        #        for mel, mfcc, wav, f0, speaker, emotion in zip(data["mels"], data["mfccs"], data["wavs"], data["f0s"],
+        #                                                        data["speakers"], data["emotions"])]
+        #self.data = data
 
     def get_max_speaker_id(self):
-        return max([speaker for _, _, _, _, speaker, _ in self.data])
+        return max([example["speakers"] for example in self.data])
 
     def increment_speakers(self, increment: int):
         for i in range(len(self)):
-            self.data[i][4] += increment
+            self.data[i]["speakers"] += increment
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, item):
-        return self.data[item]
+        return self.data[item], self.feature_temporal
 
 
 class VCTKDataset(VCDataset):

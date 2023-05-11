@@ -1,3 +1,4 @@
+from collections import namedtuple
 import os
 import sys
 from typing import List, Tuple
@@ -21,24 +22,31 @@ class VCCollateFn(object):
     def __init__(self, max_seq_len: int = 1024):
         self.max_seq_len = max_seq_len
 
-    def __call__(self, batch) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.LongTensor, torch.LongTensor]:
-        mels = self._pad([mel for mel, _, _, _, _, _ in batch], max_seq_len=self.max_seq_len)
-        mfccs = self._pad([mfcc for _, mfcc, _, _, _, _ in batch], max_seq_len=self.max_seq_len)
-        wavs = self._pad([wav.unsqueeze(0) for _, _, wav, _, _, _ in batch]).squeeze().type(torch.int32)
-        f0s = self._pad([f0.unsqueeze(0) for _, _, _, f0, _, _ in batch], max_seq_len=self.max_seq_len).squeeze()
-        speakers = torch.tensor([speaker for _, _, _, _, speaker, _ in batch])
-        emotions = torch.tensor([emotion for _, _, _, _, _, emotion in batch])
-        return mels, mfccs, wavs, f0s, speakers, emotions
+    def __call__(self, batch) -> Tuple:
+        feature_temporal = [feature_temporal for _, feature_temporal in batch][0]
+        batch = [example for example, _ in batch]
+        feature_names = list(batch[0].keys())
+        Batch = namedtuple("Batch", " ".join(feature_names))
+        values = []
+        for feature_name in feature_names:
+            feature_values = [example[feature_name] for example in batch]
+            if feature_temporal[feature_name]:
+                values.append(self._pad(feature_values))
+            else:
+                values.append(torch.tensor(feature_values))
+        return Batch(*tuple(values))
 
     @staticmethod
-    def _pad(mels: List[torch.Tensor], max_seq_len: int = sys.maxsize) -> torch.Tensor:
-        batch_size = len(mels)
-        n_channels = mels[0].size(0)
-        batch_seq_lengths = [mel.size(1) for mel in mels]
+    def _pad(sequences: List[torch.Tensor], max_seq_len: int = sys.maxsize) -> torch.Tensor:
+        batch_size = len(sequences)
+        dim = sequences[0].dim()
+        sequences = sequences if dim > 1 else [seq.unsqueeze(0) for seq in sequences]
+        n_channels = sequences[0].size(0)
+        batch_seq_lengths = [mel.size(1) for mel in sequences]
         batch_max_seq_len = min(max_seq_len, max(batch_seq_lengths))
         batch_max_seq_len = batch_max_seq_len + (8 - batch_max_seq_len % 8) * (batch_max_seq_len % 8 != 0)
         padded_mels = torch.zeros(batch_size, n_channels, batch_max_seq_len)
-        for i, mel in enumerate(mels):
+        for i, mel in enumerate(sequences):
             seq_len = batch_seq_lengths[i]
             if batch_max_seq_len < seq_len:
                 start = torch.randint(low=0, high=seq_len-batch_max_seq_len, size=[1])
@@ -50,5 +58,5 @@ class VCCollateFn(object):
                 remainder = batch_max_seq_len % seq_len
                 if remainder > 0:
                     padded_mels[i, :, -remainder:] = mel[:, :remainder]
-        return padded_mels
+        return padded_mels.squeeze()
 

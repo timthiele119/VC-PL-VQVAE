@@ -1,3 +1,4 @@
+from collections import namedtuple
 from typing import Any, Tuple, List
 
 from parallel_wavegan.utils import load_model
@@ -41,7 +42,7 @@ class HleVqVaeVc(pl.LightningModule):
         self.use_mfcc_input = use_mfcc_input
         self.learning_rate = learning_rate
         self.vocoder = load_model(global_params.PATH_HIFIGAN_PARAMS).requires_grad_(False)
-        self.mos_net = MosNet(device=self.device).requires_grad_(False)
+        self.mos_net = MosNet().requires_grad_(False)
 
     def forward(self, audio: torch.Tensor, speaker: torch.Tensor) \
             -> Tuple[torch.Tensor, List[torch.Tensor], List[torch.Tensor]]:
@@ -62,18 +63,16 @@ class HleVqVaeVc(pl.LightningModule):
         reconstruction, encodings, embeddings = v0, [z1, z2, z3], [q1, q2, q3]
         return reconstruction, encodings, embeddings
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
-                      batch_idx: int):
-        mel, mfcc, _, f0, speaker, _ = batch
+    def training_step(self, batch: namedtuple, batch_idx: int):
+        mel, mfcc, f0, speaker = batch.mels, batch.mfccs, batch.f0s, batch.speakers
         audio = mfcc if self.use_mfcc_input else mel
         reconstruction, embeddings, encodings = self(audio, speaker)
         loss = self.loss_fn(mel, reconstruction, embeddings, encodings)
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
-                        batch_idx: int):
-        mel, mfcc, _, f0, speaker, _ = batch
+    def validation_step(self, batch: namedtuple, batch_idx: int):
+        mel, mfcc, f0, speaker = batch.mels, batch.mfccs, batch.f0s, batch.speakers
         audio = mfcc if self.use_mfcc_input else mel
         reconstructed_mel, embeddings, encodings = self(audio, speaker)
         loss = self.loss_fn(mel, reconstructed_mel, embeddings, encodings)
