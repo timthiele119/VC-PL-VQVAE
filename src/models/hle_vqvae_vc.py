@@ -1,5 +1,6 @@
 from typing import Any, Tuple, List
 
+from parallel_wavegan.utils import load_model
 import pytorch_lightning as pl
 import torch
 from torch import optim
@@ -7,8 +8,10 @@ from torch import optim
 from src.losses.vqvae_losses import HierarchicalVqVaeLoss
 from src.modules.decoders import HleDecoder
 from src.modules.encoders import HleEncoder
+from src.external.mos_net.model import MosNet
 from src.modules.quantizers import VectorQuantizer
 from src.modules.speakers import SpeakerEmbedding
+from src.params import global_params
 
 
 class HleVqVaeVc(pl.LightningModule):
@@ -26,7 +29,7 @@ class HleVqVaeVc(pl.LightningModule):
             decoder_mid: HleDecoder,
             decoder_top: HleDecoder,
             use_mfcc_input: bool = False,
-            learning_rate: float = 0.0005
+            learning_rate: float = 0.0005,
     ):
         super(HleVqVaeVc, self).__init__()
         self.save_hyperparameters(logger=False)
@@ -37,6 +40,8 @@ class HleVqVaeVc(pl.LightningModule):
         self.loss_fn = HierarchicalVqVaeLoss(beta=0.25, reconstruction_loss_fn="mse")
         self.use_mfcc_input = use_mfcc_input
         self.learning_rate = learning_rate
+        self.vocoder = load_model(global_params.PATH_HIFIGAN_PARAMS).requires_grad_(False)
+        self.mos_net = MosNet(device=self.device).requires_grad_(False)
 
     def forward(self, audio: torch.Tensor, speaker: torch.Tensor) \
             -> Tuple[torch.Tensor, List[torch.Tensor], List[torch.Tensor]]:
@@ -57,7 +62,8 @@ class HleVqVaeVc(pl.LightningModule):
         reconstruction, encodings, embeddings = v0, [z1, z2, z3], [q1, q2, q3]
         return reconstruction, encodings, embeddings
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+                      batch_idx: int):
         mel, mfcc, _, f0, speaker, _ = batch
         audio = mfcc if self.use_mfcc_input else mel
         reconstruction, embeddings, encodings = self(audio, speaker)
@@ -65,12 +71,17 @@ class HleVqVaeVc(pl.LightningModule):
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], batch_idx: int):
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
+                        batch_idx: int):
         mel, mfcc, _, f0, speaker, _ = batch
         audio = mfcc if self.use_mfcc_input else mel
-        reconstruction, embeddings, encodings = self(audio, speaker)
-        loss = self.loss_fn(mel, reconstruction, embeddings, encodings)
+        reconstructed_mel, embeddings, encodings = self(audio, speaker)
+        loss = self.loss_fn(mel, reconstructed_mel, embeddings, encodings)
         self.log("val_loss", loss)
+        reconstructed_wav = self.vocoder(reconstructed_mel).squeeze()
+        self.mos_net = self.mos_net.to(self.device)
+        mos = self.mos_net(reconstructed_wav)
+        self.log("mos_score", mos)
         return loss
 
     def configure_optimizers(self) -> Any:
