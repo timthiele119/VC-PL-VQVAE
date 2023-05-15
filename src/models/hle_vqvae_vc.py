@@ -5,6 +5,10 @@ from parallel_wavegan.utils import load_model
 import pytorch_lightning as pl
 import torch
 from torch import optim
+from torchaudio.transforms import Resample
+from torchmetrics import SignalNoiseRatio
+from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
+from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility
 
 from src.losses.vqvae_losses import HierarchicalVqVaeLoss
 from src.modules.decoders import HleDecoder
@@ -42,7 +46,11 @@ class HleVqVaeVc(pl.LightningModule):
         self.use_mfcc_input = use_mfcc_input
         self.learning_rate = learning_rate
         self.vocoder = load_model(global_params.PATH_HIFIGAN_PARAMS).requires_grad_(False)
+        self.resample_16k = Resample(orig_freq=24_000, new_freq=16_000)
         self.mos_net = MosNet().requires_grad_(False)
+        self.snr = SignalNoiseRatio()
+        self.stoi = ShortTimeObjectiveIntelligibility(16_000, False)
+        #self.pesq_wb = PerceptualEvaluationSpeechQuality(16_000, "wb")
 
     def forward(self, audio: torch.Tensor, speaker: torch.Tensor) \
             -> Tuple[torch.Tensor, List[torch.Tensor], List[torch.Tensor]]:
@@ -72,15 +80,18 @@ class HleVqVaeVc(pl.LightningModule):
         return loss
 
     def validation_step(self, batch: namedtuple, batch_idx: int):
-        mel, mfcc, f0, speaker = batch.mels, batch.mfccs, batch.f0s, batch.speakers
+        mel, wav, mfcc, f0, speaker = batch.mels, batch.wavs, batch.mfccs, batch.f0s, batch.speakers
         audio = mfcc if self.use_mfcc_input else mel
         reconstructed_mel, embeddings, encodings = self(audio, speaker)
         loss = self.loss_fn(mel, reconstructed_mel, embeddings, encodings)
         self.log("val_loss", loss)
-        reconstructed_wav = self.vocoder(reconstructed_mel).squeeze()
+        target_wav = self.resample_16k(self.vocoder(mel).squeeze())
+        reconstructed_wav = self.resample_16k(self.vocoder(reconstructed_mel).squeeze())
         self.mos_net = self.mos_net.to(self.device)
-        mos = self.mos_net(reconstructed_wav)
-        self.log("mos_score", mos)
+        self.log("val_mos", self.mos_net(reconstructed_wav))
+        self.log("val_snr", self.snr(reconstructed_wav, target_wav))
+        self.log("val_stoi", self.stoi(reconstructed_wav, target_wav))
+        #self.log("val_pesq_wb", self.pesq_wb(reconstructed_wav, target_wav))
         return loss
 
     def configure_optimizers(self) -> Any:

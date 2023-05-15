@@ -1,5 +1,6 @@
-import sys
+from collections import defaultdict
 from abc import abstractmethod
+import sys
 import os
 
 import librosa
@@ -109,11 +110,6 @@ class VCDataset(Dataset):
                        for feature_name, feature_value
                        in zip(self.feature_names, example_feature_values)}
             self.data.append(example)
-        #print(self.data)
-        #data = [[torch.tensor(mel).T, torch.tensor(mfcc).T, torch.tensor(wav), torch.tensor(f0), speaker, emotion]
-        #        for mel, mfcc, wav, f0, speaker, emotion in zip(data["mels"], data["mfccs"], data["wavs"], data["f0s"],
-        #                                                        data["speakers"], data["emotions"])]
-        #self.data = data
 
     def get_max_speaker_id(self):
         return max([example["speakers"] for example in self.data])

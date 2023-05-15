@@ -37,32 +37,21 @@ class Normalize(AudioPreprocessingStep):
 class WavToMel(AudioPreprocessingStep):
 
     def __init__(self, sr: int, n_fft: int, hop_length: int, win_length: int, n_mels: int):
-        self.sr = sr
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.win_length = win_length
-        self.n_mels = n_mels
+        self.mel = MelSpectrogram(sample_rate=sr, n_fft=n_fft, hop_length=hop_length, win_length=win_length,
+                                  n_mels=n_mels)
 
     def __call__(self, audio: torch.Tensor) -> torch.Tensor:
-        mel = librosa.feature.melspectrogram(y=audio.numpy(), sr=self.sr, n_fft=self.n_fft, hop_length=self.hop_length,
-                                             win_length=self.win_length, n_mels=self.n_mels)
-        return torch.tensor(mel)
+        return self.mel(audio)
 
 
 class WavToMFCC(AudioPreprocessingStep):
 
     def __init__(self, sr: int, n_mfcc: int, n_fft: int, hop_length: int, win_length: int, n_mels: int):
-        self.sr = sr
-        self.n_mfcc = n_mfcc
-        self.n_fft = n_fft
-        self.hop_length = hop_length
-        self.win_length = win_length
-        self.n_mels = n_mels
+        self.mfcc = MFCC(sample_rate=sr, n_mfcc=n_mfcc,
+                         melkwargs={"n_fft": n_fft, "hop_length": hop_length, "n_mels": n_mels})
 
     def __call__(self, audio: torch.Tensor):
-        mfcc = librosa.feature.mfcc(y=audio.numpy(), sr=self.sr, n_mfcc=self.n_mfcc, n_fft=self.n_fft,
-                                    hop_length=self.hop_length, win_length=self.win_length, n_mels=self.n_mels)
-        return torch.tensor(mfcc)
+        return self.mfcc(audio)
 
 
 class MelToF0(AudioPreprocessingStep):
