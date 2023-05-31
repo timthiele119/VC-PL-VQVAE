@@ -1,0 +1,3 @@
+trainer:
+  auto_lr_find: true
+  accelerator: gpu

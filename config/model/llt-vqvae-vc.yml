@@ -1,0 +1,43 @@
+model:
+  class_path: src.models.llt_vqvae_vc.LltVqVaeVc
+  init_args:
+    speaker_embedding:
+      class_path: src.modules.speakers.SpeakerEmbedding
+      init_args:
+        num_speakers: 20
+        speaker_dim: 16
+
+    encoder:
+      class_path: src.modules.encoders.HleEncoder
+      init_args:
+        input_dim: 80
+        output_dim: 0
+        output_latent_dim: 64
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    quantizer:
+      class_path: src.modules.quantizers.AttentionVectorQuantizer
+      init_args:
+        embedding_dim: 64
+        num_embeddings: 512
+        heads: 8
+
+    decoder:
+      class_path: src.modules.decoders.HleDecoder
+      init_args:
+        input_dim: 64
+        cond_dim: 16
+        output_dim: 80
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    learning_rate: 0.0001

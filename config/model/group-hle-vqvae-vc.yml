@@ -1,0 +1,109 @@
+model:
+  class_path: src.models.hle_vqvae_vc.HleVqVaeVc
+  init_args:
+    speaker_embedding:
+      class_path: src.modules.speakers.SpeakerEmbedding
+      init_args:
+        num_speakers: 30
+        speaker_dim: 16
+
+    encoder_bot:
+      class_path: src.modules.encoders.HleEncoder
+      init_args:
+        input_dim: 80
+        output_dim: 128
+        output_latent_dim: 32
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    encoder_mid:
+      class_path: src.modules.encoders.HleEncoder
+      init_args:
+        input_dim: 128
+        output_dim: 128
+        output_latent_dim: 32
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    encoder_top:
+      class_path: src.modules.encoders.HleEncoder
+      init_args:
+        input_dim: 128
+        output_dim: 0
+        output_latent_dim: 32
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    quantizer_bot:
+      class_path: src.modules.quantizers.GroupVectorQuantizer
+      init_args:
+        embedding_dim: 32
+        num_groups: 42
+        num_embeddings_per_group: 10
+
+    quantizer_mid:
+      class_path: src.modules.quantizers.GroupVectorQuantizer
+      init_args:
+        embedding_dim: 32
+        num_groups: 32
+        num_embeddings_per_group: 10
+
+    quantizer_top:
+      class_path: src.modules.quantizers.GroupVectorQuantizer
+      init_args:
+        embedding_dim: 32
+        num_groups: 16
+        num_embeddings_per_group: 10
+
+    decoder_top:
+      class_path: src.modules.decoders.HleDecoder
+      init_args:
+        input_dim: 32
+        cond_dim: 16
+        output_dim: 128
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    decoder_mid:
+      class_path: src.modules.decoders.HleDecoder
+      init_args:
+        input_dim: 160
+        cond_dim: 16
+        output_dim: 128
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    decoder_bot:
+      class_path: src.modules.decoders.HleDecoder
+      init_args:
+        input_dim: 160
+        cond_dim: 16
+        output_dim: 80
+        residual_dim: 128
+        skip_dim: 128
+        gate_dim: 128
+        kernel_size: 5
+        dilation_steps: 3
+        dilation_repeats: 3
+
+    learning_rate: 0.0005
