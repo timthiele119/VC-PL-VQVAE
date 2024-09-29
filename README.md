@@ -1,10 +1,10 @@
 # VC-PL-VQVAE
-**Voice Conversion (VC) Perception-Aware Loss (PL) Vector-Quantized Variational Autoencoder (VQVAE)**
+Acronym for: Voice Conversion (VC) Perception-Aware Loss (PL) Vector-Quantized Variational Autoencoder (VQVAE).
 
-🚀 **Project Overview**  
+### 🚀 Project Overview
 This is a research project that aims to enhance voice conversion techniques by integrating hierarchical VQVAE architectures with perception-aware loss functions. The model is designed to improve speech generation quality significantly, providing more natural and intelligible outputs.
 
-📄 **Current Status**  
+### 📄 Current Status
 The project is currently under review, and the corresponding research paper has not been published. The code will be made available after the review process.
 
 ### 🔧 Tools and Technologies
