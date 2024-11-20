@@ -9,7 +9,7 @@
 - Audio Samples: t.b.a.
 
 ### 🚀 Overview
-By adding perception-informed loss functions during training of a voice conversion (VC) model, optimization can be aligned more towards human optimization, potentially making use of more complex architectures or loss functions obsolete. We propose model-agnostic loss functions that capture representations about speech quality; focussing on intelligibility, prosody and naturalness. We categorize into handcrafted-feature losses based and representation driven losses. Our framework improves performance of the VC model across various datasets, languages, target speakers, and genders without increasing the capacity of the VC model itself.
+By adding perception-informed loss functions during training of a voice conversion (VC) model, optimization can be aligned more towards human optimization, potentially making use of more complex architectures or loss functions obsolete. We propose model-agnostic loss functions that capture key auditory features about speech quality; focussing on intelligibility, prosody and naturalness. We categorize into handcrafted-feature based losses and representation driven losses. Our framework improves performance of the VC model across various datasets, languages, target speakers, and genders without increasing the capacity of the VC model itself.
 
 <p align="center">
   <img src="documentation/VC-PL-Framework.png" alt="VC-PL-Framework" width="600">
