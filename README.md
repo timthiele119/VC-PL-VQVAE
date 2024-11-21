@@ -27,7 +27,7 @@ The increasing use of cloud-based speech assistants has heightened the need for 
 #### Datasets
 We trained the model on a subset of the [VCTK dataset](https://datashare.ed.ac.uk/handle/10283/2651) and tested it on another subset of VCTK, 
 additionally on the full 'clean' and 'other' datasets of [LibriSpeech English](https://www.openslr.org/12) 
-and [Multilingual LibriSpeech German](https://www.openslr.org/94/). These need to be manually downloaded.
+and [Multilingual LibriSpeech German](https://www.openslr.org/94/). These need to be manually downloaded. For using the same splits, look at the config dir.
 
 #### Perception-Informed Loss Functions
 We provide the models of our proposed losses also, located under "src/external/".
