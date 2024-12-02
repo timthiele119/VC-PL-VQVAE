@@ -4,7 +4,7 @@
 
 ### 🧠 Links
 - Paper: [arxiv](https://arxiv.org/abs/2410.15499)
-- Poster at NeurIPS: [here](https://drive.google.com/file/d/1gv2IgZtfGaEm9E8X1qRiTJfkbakKn0_l/view?usp=share_link)
+- Poster at NeurIPS: [here](https://drive.google.com/file/d/1Yt3DlvwfmSHFcK5sNoOcHrnFEkkchDUz/view?usp=share_link)
 - 5 min Presentation: t.b.a.
 - Audio Samples: [here](https://drive.google.com/drive/folders/16XM85nEJAOKiZ4MJYOWY3r-BRklTwDnz?usp=share_link)
 
