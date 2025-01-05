@@ -10,7 +10,7 @@ from torchmetrics import SignalNoiseRatio
 from torchmetrics.audio.pesq import PerceptualEvaluationSpeechQuality
 from torchmetrics.audio.stoi import ShortTimeObjectiveIntelligibility
 
-from src.losses.vqvae_losses import HierarchicalVqVaeLoss
+from src.losses.vqvae_vc_losses import HierarchicalVqVaeLoss
 from src.modules.decoders import HleDecoder
 from src.modules.encoders import HleEncoder
 from src.external.mos_net.model import MosNet

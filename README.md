@@ -51,6 +51,8 @@ to your needs. Then the model can be trained using the following command:
 python main.py fit -c config/model/hle-vqvae-vc.yml -c config/data/vctk20/vctk20mel-24kHZ.yml -c config/trainer/config-train.yml
 ```
 
+Make sure to implement external models or libraries in advance.
+
 #### Inference
 You can download the [model](https://drive.google.com/drive/folders/1RQmtmak4KihylkqZ6YaFKwHifUUzZtao?usp=share_link) checkpoint for our VC-PL-VQVAE architecture.
 Refer to [notebooks/results.ipynb](notebooks/results.ipynb) for testing.
